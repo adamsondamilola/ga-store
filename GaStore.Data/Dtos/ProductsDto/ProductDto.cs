@@ -1,0 +1,117 @@
+﻿using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using GaStore.Data.Entities.Products;
+using GaStore.Data.Entities.Users;
+
+namespace GaStore.Data.Dtos.ProductsDto
+{
+	public class ProductDto
+	{
+		public Guid? Id { get; set; }
+		public Guid? UserId { get; set; }
+		[Required]
+		[MaxLength(255)]
+		public string Name { get; set; }
+		public string? Description { get; set; }
+		public string? Highlights { get; set; }
+		public string? Weight { get; set; }
+
+		public string? PrimaryColor { get; set; }
+
+		public int StockQuantity { get; set; }
+        public bool IsAvailable { get; set; }
+        public bool IsApproved { get; set; } = false;
+        public DateTime? DateCreated { get; set; }
+
+        public Guid? BrandId { get; set; }
+		public Guid? CategoryId { get; set; }
+        public Guid? SubCategoryId { get; set; }
+        public Guid? ProductTypeId { get; set; }
+        public Guid? ProductSubTypeId { get; set; }
+        public Guid? ApprovedBy { get; set; }
+        public DateTime? DateApproved { get; set; } = DateTime.Now;
+        public List<IFormFile>? imageFiles { get; set; }
+        public string[]? ImageUrls { get; set; }
+        public List<string>? Tags { get; set; }
+        public virtual ICollection<ProductVariantDto>? VariantsDto { get; set; } 
+		//public virtual ICollection<PricingTierDto> PricingTiersDto { get; set; }
+
+		//public virtual BrandDto? BrandDto { get; set; }
+		//public virtual ICollection<ProductImageDto> ImagesDto { get; set; } // List of product images
+																			//public virtual ICollection<FeaturedProductDto> FeaturedEntriesDto { get; set; } = new List<FeaturedProductDto>();
+		public virtual ProductSpecificationDto SpecificationsDto { get; set; }
+		//public virtual ICollection<ProductSpecificationDto> SpecificationsDto { get; set; } = new List<ProductSpecificationDto>();
+
+		//not to be used in form
+		public virtual ICollection<PricingTierDto>? PricingTiers { get; set; }
+		public virtual ICollection<ProductImageDto>? Images { get; set; } // List of product images
+
+	}
+
+	public class ProductListDto
+	{
+		public Guid Id { get; set; }
+		public string Name { get; set; }
+		public Guid? UserId { get; set; }
+		public string? Description { get; set; }
+		public string? Highlights { get; set; }
+		public string? Weight { get; set; }
+
+		public string? PrimaryColor { get; set; }
+
+		public int StockQuantity { get; set; }
+		public bool IsAvailable { get; set; }
+        public bool IsApproved { get; set; } = false;
+        public Guid? BrandId { get; set; }
+        public Guid? CategoryId { get; set; }
+        public Guid? SubCategoryId { get; set; }
+        public Guid? ProductTypeId { get; set; }
+        public Guid? ProductSubTypeId { get; set; }
+
+        public DateTime? DateCreated { get; set; }
+        public Guid? ApprovedBy { get; set; }
+        public DateTime? DateApproved { get; set; } = DateTime.Now;
+        public List<IFormFile>? imageFiles { get; set; }
+		public ProductBrandDto Brand { get; set; }
+		public ProductCategoryDto? Category { get; set; }
+        public ProductSubCategoryDto? SubCategory { get; set; }
+        public ProductTypeDto? ProductType { get; set; }
+        public ProductSubTypeDto? ProductSubType { get; set; }
+        public List<ProductImage> Images { get; set; }
+		public List<ProductVariant> Variants { get; set; }
+		public ProductSpecification Specifications { get; set; }
+        public User? User { get; set; }
+        public User? Approver { get; set; }
+		public string[]? Tags { get; set; }
+    }
+
+    public class ProductBrandDto
+	{
+		public Guid Id { get; set; }
+		public string Name { get; set; }
+		// Avoid including Brand.Products to prevent cycles
+	}
+	public class ProductCategoryDto
+	{
+		public Guid Id { get; set; }
+		public string Name { get; set; }
+		public string? ImageUrl { get; set; }
+	}
+
+	public class ProductSubCategoryDto
+	{
+		public Guid Id { get; set; }
+		public Guid CategoryId { get; set; }
+		public string Name { get; set; }
+		public bool HasColors { get; set; }
+		public bool HasSizes { get; set; }
+		public bool HasStyles { get; set; }
+		// Avoid including Brand.Products to prevent cycles
+	}
+
+}

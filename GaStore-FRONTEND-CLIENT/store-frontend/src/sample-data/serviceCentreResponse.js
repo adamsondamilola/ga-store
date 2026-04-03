@@ -1,0 +1,86 @@
+const serviceCentres = {
+  "object": [
+    {
+      "serviceCentreId": 1,
+      "name": "Ikeja Service Centre",
+      "address": "23 Obafemi Awolowo Way, Ikeja",
+      "city": "Lagos",
+      "code": "IKJ01",
+      "phoneNumber": "+2348091234567",
+      "email": "ikeja@deliveryhub.com",
+      "isActive": true,
+      "stationId": 101,
+      "stationName": "Ikeja Station",
+      "supperServiceCentreId": 0,
+      "stationCode": "STN-IKJ",
+      "countryId": 156,
+      "lgaId": 23,
+      "users": [
+        { "userId": 201, "name": "John Doe" },
+        { "userId": 202, "name": "Jane Smith" }
+      ],
+      "shipments": [
+        { "shipmentId": "SHP1001", "status": "Delivered" },
+        { "shipmentId": "SHP1002", "status": "In Transit" }
+      ],
+      "targetAmount": 500000.00,
+      "targetOrder": 150,
+      "isDefault": true,
+      "latitude": 6.6018,
+      "longitude": 3.3515,
+      "isHUB": true,
+      "formattedServiceCentreName": "Ikeja Service Centre - Lagos",
+      "isPublic": true,
+      "homeDeliveryStatus": true,
+      "isGateway": false,
+      "isConsignable": true,
+      "dateCreated": "2024-03-15T08:30:00Z",
+      "dateModified": "2025-01-20T10:00:00Z",
+      "isDeleted": false,
+      "rowVersion": "v1.0.2"
+    },
+    {
+      "serviceCentreId": 2,
+      "name": "Abuja Central Hub",
+      "address": "Plot 4, Airport Road, Garki",
+      "city": "Abuja",
+      "code": "ABJ01",
+      "phoneNumber": "+2348076543210",
+      "email": "abuja@deliveryhub.com",
+      "isActive": true,
+      "stationId": 102,
+      "stationName": "Abuja Station",
+      "supperServiceCentreId": 1,
+      "stationCode": "STN-ABJ",
+      "countryId": 156,
+      "lgaId": 45,
+      "users": [
+        { "userId": 301, "name": "Michael Johnson" }
+      ],
+      "shipments": [],
+      "targetAmount": 750000.00,
+      "targetOrder": 200,
+      "isDefault": false,
+      "latitude": 9.0765,
+      "longitude": 7.3986,
+      "isHUB": true,
+      "formattedServiceCentreName": "Abuja Central Hub - FCT",
+      "isPublic": true,
+      "homeDeliveryStatus": true,
+      "isGateway": true,
+      "isConsignable": true,
+      "dateCreated": "2024-04-02T09:15:00Z",
+      "dateModified": "2025-02-10T14:45:00Z",
+      "isDeleted": false,
+      "rowVersion": "v1.1.0"
+    }
+  ],
+  "magayaErrorMessage": 0,
+  "more_reults": 0,
+  "total": 2,
+  "validationErrors": {},
+  "averageRatings": 4.6,
+  "isVerified": true,
+  "isEligible": true
+}
+ export default serviceCentres;

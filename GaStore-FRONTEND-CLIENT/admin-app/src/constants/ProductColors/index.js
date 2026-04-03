@@ -1,0 +1,2 @@
+const productColors = ["Red", "Orange", "Yellow", "Green", "Blue", "Indigo", "Violet", "Pink", "Brown", "Black", "White", "Gray", "Cyan", "Magenta", "Turquoise", "Beige", "Gold", "Silver", "Teal", "Lavender", "Maroon", "Olive", "Peach", "Mint", "Crimson", "Azure", "Salmon", "Amethyst", "Charcoal", "Chartreuse", "Amber", "Ivory"]
+export default productColors
