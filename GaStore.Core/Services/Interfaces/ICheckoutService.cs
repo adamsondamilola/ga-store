@@ -15,6 +15,7 @@ namespace GaStore.Core.Services.Interfaces
 	{
 		Task<ServiceResponse<PaymentInitiationResponseDto>> RegisterPurchaseAsync(Guid userId, OrderSummaryDto summaryDto);
         Task<ServiceResponse<bool>> ProcessCheckoutWithWalletAsync(Guid userId, Guid orderId, OrderSummaryDto summaryDto);
+        Task<ServiceResponse<bool>> ProcessCheckoutWithVoucherAsync(Guid userId, Guid orderId, OrderSummaryDto summaryDto);
 		Task<ServiceResponse<bool>> VerifyTransaction(OrderSummaryDto summaryDto, string transactionId, Guid userId, Guid orderId);
 		Task<ServiceResponse<bool>> ProcessGatewayWebhookAsync(string paymentGateway, string transactionId, string? paymentReference = null, Guid? orderId = null, Guid? userId = null);
 		ServiceResponse<string> DefaultPaymentGateway();

@@ -7,6 +7,7 @@ import {
   ListOrdered,
   Logs,
   MapPin,
+  Ticket,
   Users,
   Users2
 } from "lucide-react";
@@ -136,6 +137,10 @@ const AsideComponent = () => {
 
           <Sidebar.Item href="/manual-payment-accounts" icon={Payments} className={isActive("/manual-payment-accounts")}>
             Payment Settings
+          </Sidebar.Item>
+
+          <Sidebar.Item href="/vouchers" icon={Ticket} className={isActive("/vouchers")}>
+            Vouchers
           </Sidebar.Item>
 
            <SidebarCollapse icon={ViewCarousel} label="Sliders" className={isActive("/sliders")}>

@@ -4,6 +4,7 @@ using GaStore.Models.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GaStore.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260403072541_BackfillLimitedOffersSchema")]
+    partial class BackfillLimitedOffersSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -328,15 +331,6 @@ namespace GaStore.Data.Migrations
 
                     b.Property<string>("PaymentGatewayTransactionId")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("VoucherAmountApplied")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("VoucherCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("VoucherId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("SubTotal")
                         .HasColumnType("decimal(18,2)");
@@ -1637,123 +1631,7 @@ namespace GaStore.Data.Migrations
                             IsGateway = false,
                             MethodKey = "manual",
                             SortOrder = 4
-                        },
-                        new
-                        {
-                            Id = new Guid("5ba4be93-1546-4c6e-b4af-6279fbf85fec"),
-                            DateCreated = new DateTime(2026, 3, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DateUpdated = new DateTime(2026, 3, 26, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Voucher",
-                            IsDefaultGateway = false,
-                            IsEnabled = true,
-                            IsGateway = false,
-                            MethodKey = "voucher",
-                            SortOrder = 5
                         });
-                });
-
-            modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ContactEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<DateTime?>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("InitialValue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("PurchaserName")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("PurchaserType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<decimal>("RemainingValue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("Vouchers");
-                });
-
-            modelBuilder.Entity("GaStore.Data.Entities.System.VoucherRedemption", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("AmountRedeemed")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("BalanceAfter")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("BalanceBefore")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("DateCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateUpdated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("VoucherId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("VoucherId");
-
-                    b.ToTable("VoucherRedemptions");
                 });
 
             modelBuilder.Entity("GaStore.Data.Entities.Users.DeliveryAddress", b =>
@@ -2511,43 +2389,6 @@ namespace GaStore.Data.Migrations
                     b.Navigation("Referral");
                 });
 
-            modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
-                {
-                    b.HasOne("GaStore.Data.Entities.Users.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("GaStore.Data.Entities.System.VoucherRedemption", b =>
-                {
-                    b.HasOne("GaStore.Data.Entities.Orders.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("GaStore.Data.Entities.Users.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("GaStore.Data.Entities.System.Voucher", "Voucher")
-                        .WithMany("Redemptions")
-                        .HasForeignKey("VoucherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("User");
-
-                    b.Navigation("Voucher");
-                });
-
             modelBuilder.Entity("GaStore.Data.Entities.Shippings.PriceByWeight", b =>
                 {
                     b.HasOne("GaStore.Data.Entities.Shippings.DeliveryLocation", "DeliveryLocation")
@@ -2645,11 +2486,6 @@ namespace GaStore.Data.Migrations
 
                     b.Navigation("Shipping")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
-                {
-                    b.Navigation("Redemptions");
                 });
 
             modelBuilder.Entity("GaStore.Data.Entities.Products.Brand", b =>

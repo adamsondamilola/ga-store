@@ -15,6 +15,11 @@ export default function PaymentMethod({
   setManualPaymentReference,
   manualCustomerNote,
   setManualCustomerNote,
+  voucherCode,
+  setVoucherCode,
+  voucherValidation,
+  isVoucherChecking,
+  validateVoucher,
   paymentGateway,
   setPaymentGateway,
   handlePaymentSubmit,
@@ -31,20 +36,27 @@ export default function PaymentMethod({
   const manualMethod = enabledPaymentMethods.find(
     (method) => method.methodKey === "manual" && method.isEnabled
   );
+  const voucherMethod = enabledPaymentMethods.find(
+    (method) => method.methodKey === "voucher" && method.isEnabled
+  );
 
   const hasValidPaymentSelection =
     (paymentMethod === "credit-card" &&
       gatewayMethods.some((method) => method.methodKey === paymentGateway)) ||
     (paymentMethod === "wallet" && Boolean(walletMethod)) ||
-    (paymentMethod === "manual" && Boolean(manualMethod));
+    (paymentMethod === "manual" && Boolean(manualMethod)) ||
+    (paymentMethod === "voucher" && Boolean(voucherMethod));
   const isManualProofReady =
     paymentMethod !== "manual" || Boolean(manualProofFile);
+  const isVoucherReady =
+    paymentMethod !== "voucher" || Boolean(voucherCode.trim());
   const isButtonDisabled =
     isLoading ||
     !isCheckoutReady ||
     enabledPaymentMethods.length === 0 ||
     !hasValidPaymentSelection ||
-    !isManualProofReady;
+    !isManualProofReady ||
+    !isVoucherReady;
 
   const getGatewayLogo = (methodKey) => {
     if (methodKey === "Paystack") return AppImages.paystack;
@@ -53,9 +65,12 @@ export default function PaymentMethod({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100">
+    <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 bg-[#fcfbf8] p-6">
         <h2 className="text-xl font-semibold text-gray-900">Payment Method</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Choose the payment option that feels most convenient for you.
+        </p>
       </div>
 
       <div className="p-6">
@@ -67,10 +82,10 @@ export default function PaymentMethod({
               return (
                 <label
                   key={gateway.methodKey}
-                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
+                  className={`flex cursor-pointer items-center rounded-2xl border p-4 transition ${
                     paymentMethod === "credit-card" && paymentGateway === gateway.methodKey
-                      ? "border-blue-500 bg-blue-50"
-                      : "hover:border-blue-300"
+                      ? "border-[#f6c8a9] bg-[#fff7f1]"
+                      : "hover:border-gray-300"
                   }`}
                 >
                   <input
@@ -81,7 +96,7 @@ export default function PaymentMethod({
                       setPaymentMethod("credit-card");
                       setPaymentGateway(gateway.methodKey);
                     }}
-                    className="h-5 w-5 text-blue-600"
+                    className="h-5 w-5 text-[#f97316]"
                   />
                   <div className="ml-3 flex items-center space-x-3">
                     {logo ? (
@@ -96,10 +111,10 @@ export default function PaymentMethod({
 
             {walletMethod && (
               <label
-                className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
+                className={`flex cursor-pointer items-center rounded-2xl border p-4 transition ${
                   paymentMethod === "wallet"
-                    ? "border-blue-500 bg-blue-50"
-                    : "hover:border-blue-300"
+                    ? "border-[#f6c8a9] bg-[#fff7f1]"
+                    : "hover:border-gray-300"
                 }`}
               >
                 <input
@@ -107,7 +122,7 @@ export default function PaymentMethod({
                   name="payment"
                   checked={paymentMethod === "wallet"}
                   onChange={() => {setPaymentMethod("wallet"); setPaymentGateway("");}}
-                  className="h-5 w-5 text-blue-600"
+                  className="h-5 w-5 text-[#f97316]"
                 />
                 <div className="ml-3 flex items-center space-x-3">
                   <Wallet className="text-gray-600 text-2xl" />
@@ -118,10 +133,10 @@ export default function PaymentMethod({
 
             {manualMethod && (
               <label
-                className={`flex items-start p-4 border rounded-lg cursor-pointer transition ${
+                className={`flex cursor-pointer items-start rounded-2xl border p-4 transition ${
                   paymentMethod === "manual"
-                    ? "border-blue-500 bg-blue-50"
-                    : "hover:border-blue-300"
+                    ? "border-[#f6c8a9] bg-[#fff7f1]"
+                    : "hover:border-gray-300"
                 }`}
               >
                 <input
@@ -132,7 +147,7 @@ export default function PaymentMethod({
                     setPaymentMethod("manual");
                     setPaymentGateway("");
                   }}
-                  className="h-5 w-5 text-blue-600 mt-1"
+                  className="mt-1 h-5 w-5 text-[#f97316]"
                 />
                 <div className="ml-3 w-full">
                   <div className="font-medium text-gray-900">{manualMethod.displayName || "Manual Payment"}</div>
@@ -165,7 +180,7 @@ export default function PaymentMethod({
                           <select
                             value={manualSelectedBankAccountId}
                             onChange={(e) => setManualSelectedBankAccountId(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                           >
                             <option value="">Select account</option>
                             {(manualPaymentAccounts || []).map((account) => (
@@ -183,7 +198,7 @@ export default function PaymentMethod({
                           <input
                             value={manualPaymentReference}
                             onChange={(e) => setManualPaymentReference(e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                             placeholder="Enter transfer reference"
                           />
                         </div>
@@ -196,7 +211,7 @@ export default function PaymentMethod({
                         <textarea
                           value={manualCustomerNote}
                           onChange={(e) => setManualCustomerNote(e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                           rows={3}
                           placeholder="Optional payment note"
                         />
@@ -210,7 +225,7 @@ export default function PaymentMethod({
                           type="file"
                           accept="image/*"
                           onChange={(e) => setManualProofFile(e.target.files?.[0] || null)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
                           required={paymentMethod === "manual"}
                         />
                         <p className="mt-2 text-xs text-gray-500">
@@ -228,6 +243,71 @@ export default function PaymentMethod({
               </label>
             )}
 
+            {voucherMethod && (
+              <label
+                className={`flex cursor-pointer items-start rounded-2xl border p-4 transition ${
+                  paymentMethod === "voucher"
+                    ? "border-[#f6c8a9] bg-[#fff7f1]"
+                    : "hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "voucher"}
+                  onChange={() => {
+                    setPaymentMethod("voucher");
+                    setPaymentGateway("");
+                  }}
+                  className="mt-1 h-5 w-5 text-[#f97316]"
+                />
+                <div className="ml-3 w-full">
+                  <div className="font-medium text-gray-900">{voucherMethod.displayName || "Voucher"}</div>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Enter a valid voucher code to complete this purchase with voucher balance.
+                  </p>
+
+                  {paymentMethod === "voucher" && (
+                    <div className="mt-3 space-y-3">
+                      <div className="flex flex-col gap-3 md:flex-row">
+                        <input
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                          placeholder="Enter voucher code"
+                        />
+                        <button
+                          type="button"
+                          onClick={validateVoucher}
+                          disabled={isVoucherChecking || !voucherCode.trim()}
+                          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isVoucherChecking ? "Checking..." : "Verify"}
+                        </button>
+                      </div>
+
+                      {voucherValidation && (
+                        <div
+                          className={`rounded-xl border px-4 py-3 text-sm ${
+                            voucherValidation.isValid
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : "border-red-200 bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {voucherValidation.message}
+                          {voucherValidation.isValid && (
+                            <div className="mt-1 font-medium">
+                              Balance: {voucherValidation.currency} {Number(voucherValidation.remainingValue || 0).toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </label>
+            )}
+
             {enabledPaymentMethods.length === 0 && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
                 No payment method is currently available. Please contact support before completing checkout.
@@ -238,7 +318,7 @@ export default function PaymentMethod({
           <button
             type="submit"
             disabled={isButtonDisabled}
-            className={`hidden md:block w-full py-3 mt-4 rounded-lg transition font-medium ${
+            className={`mt-4 hidden w-full rounded-full py-3 md:block transition font-medium ${
               isButtonDisabled
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-black text-white hover:bg-gray-800 active:scale-95"

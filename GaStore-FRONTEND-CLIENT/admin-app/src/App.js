@@ -46,6 +46,7 @@ import ShippingProvidersScreen from './screens/shipping/shippingProviders';
 import AuditLogsScreen from './screens/auditlogs';
 import ManualPaymentAccountsScreen from './screens/manual-payment-accounts';
 import LimitedOffersScreen from './screens/limited-offers';
+import VouchersScreen from './screens/vouchers';
 
 function App() {
   return (
@@ -134,6 +135,11 @@ function App() {
 
         <Route path="/manual-payment-accounts" element={<DashboardLayout />}>
         <Route index element={<ManualPaymentAccountsScreen />} />
+        <Route path='*' element={<NotFoundPage/>} />
+        </Route>
+
+        <Route path="/vouchers" element={<DashboardLayout />}>
+        <Route index element={<VouchersScreen />} />
         <Route path='*' element={<NotFoundPage/>} />
         </Route>
 

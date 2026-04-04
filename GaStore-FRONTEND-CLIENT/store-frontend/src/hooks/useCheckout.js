@@ -20,6 +20,9 @@ export function useCheckout() {
   const [manualSelectedBankAccountId, setManualSelectedBankAccountId] = useState('');
   const [manualPaymentReference, setManualPaymentReference] = useState('');
   const [manualCustomerNote, setManualCustomerNote] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherValidation, setVoucherValidation] = useState(null);
+  const [isVoucherChecking, setIsVoucherChecking] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const [deliveryLocations, setDeliveryLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -370,11 +373,45 @@ export function useCheckout() {
     }
   };
 
+  const validateVoucher = async () => {
+    if (!voucherCode.trim()) {
+      toast.error('Enter a voucher code');
+      setVoucherValidation(null);
+      return false;
+    }
+
+    setIsVoucherChecking(true);
+    try {
+      const response = await requestHandler.get(
+        `${endpointsPath.voucher}/validate/${encodeURIComponent(voucherCode.trim())}`,
+        true
+      );
+
+      if (response.statusCode === 200 && response.result?.data) {
+        setVoucherValidation(response.result.data);
+        toast.success(response.result?.message || 'Voucher is valid');
+        return true;
+      }
+
+      setVoucherValidation(response.result?.data || null);
+      toast.error(response.result?.message || 'Voucher is not valid');
+      return false;
+    } catch (error) {
+      console.error('voucher validation failed', error);
+      setVoucherValidation(null);
+      toast.error('Failed to validate voucher');
+      return false;
+    } finally {
+      setIsVoucherChecking(false);
+    }
+  };
+
   const applyPaymentMethodSelection = (methods) => {
     const enabledMethods = methods || [];
     const enabledGateways = enabledMethods.filter((item) => item.isGateway && item.isEnabled);
     const walletMethod = enabledMethods.find((item) => item.methodKey === 'commission' && item.isEnabled);
     const manualMethod = enabledMethods.find((item) => item.methodKey === 'manual' && item.isEnabled);
+    const voucherMethod = enabledMethods.find((item) => item.methodKey === 'voucher' && item.isEnabled);
     const defaultGateway =
       enabledGateways.find((item) => item.isDefaultGateway) ||
       enabledGateways[0] ||
@@ -384,7 +421,8 @@ export function useCheckout() {
       (paymentMethod === 'credit-card' &&
         enabledGateways.some((item) => item.methodKey === paymentGateway)) ||
       (paymentMethod === 'wallet' && Boolean(walletMethod)) ||
-      (paymentMethod === 'manual' && Boolean(manualMethod));
+      (paymentMethod === 'manual' && Boolean(manualMethod)) ||
+      (paymentMethod === 'voucher' && Boolean(voucherMethod));
 
     if (isCurrentSelectionValid) {
       if (
@@ -412,6 +450,12 @@ export function useCheckout() {
 
     if (manualMethod) {
       setPaymentMethod('manual');
+      setPaymentGateway('');
+      return;
+    }
+
+    if (voucherMethod) {
+      setPaymentMethod('voucher');
       setPaymentGateway('');
       return;
     }
@@ -475,6 +519,10 @@ export function useCheckout() {
       applyPaymentMethodSelection(paymentMethods);
     }
   }, [paymentMethods]);
+
+  useEffect(() => {
+    setVoucherValidation(null);
+  }, [voucherCode]);
 
   // update delivery fee whenever address / locations / cart change
   useEffect(() => {
@@ -822,8 +870,13 @@ const initializePaystackPayment = usePaystackPayment({
         ? selectedAddress?.address
         : pickupAddress,
       paymentGateway:
-        paymentMethod === 'manual' ? 'Manual' : paymentGateway,
+        paymentMethod === 'manual'
+          ? 'Manual'
+          : paymentMethod === 'voucher'
+            ? 'Voucher'
+            : paymentGateway,
       paymentGatewayTransactionId: paymentReference || "",
+      voucherCode: voucherCode.trim() || null,
       cartProducts,
     };
   };
@@ -994,6 +1047,23 @@ const handleCheckoutCheck = async (e, ensuredOrderId) => {
       return;
     }
 
+    if (paymentMethod === "voucher") {
+      const voucherResponse = await requestHandler.post(
+        `${endpointsPath.checkout}/voucher?orderId=${ensuredOrderId}`,
+        orderData,
+        true
+      );
+
+      if (voucherResponse.statusCode === 200) {
+        localStorage.removeItem("cart");
+        toast.success(voucherResponse.result?.message || "Voucher payment completed successfully");
+        window.location.href = "/customer/orders/";
+      } else {
+        toast.error(voucherResponse.result?.message || voucherResponse.result?.Message || "Unable to process voucher payment");
+      }
+      return;
+    }
+
     setIsProcessing(true);
 
     if (paymentGateway === "Paystack") {
@@ -1092,6 +1162,18 @@ const handlePaymentSubmit = async (e) => {
     return;
   }
 
+  if (paymentMethod === "voucher") {
+    if (!voucherCode.trim()) {
+      toast.error("Please enter your voucher code.");
+      return;
+    }
+
+    const isVoucherValid = await validateVoucher();
+    if (!isVoucherValid) {
+      return;
+    }
+  }
+
   const id = await registerOrder(); 
   if (!id) return;
 
@@ -1186,6 +1268,11 @@ const handlePaymentSubmit = async (e) => {
     setManualPaymentReference,
     manualCustomerNote,
     setManualCustomerNote,
+    voucherCode,
+    setVoucherCode,
+    voucherValidation,
+    isVoucherChecking,
+    validateVoucher,
     paymentGateway,
     setPaymentGateway,
     handlePaymentSubmit,

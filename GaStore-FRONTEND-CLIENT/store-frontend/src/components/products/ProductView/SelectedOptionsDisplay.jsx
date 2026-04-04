@@ -23,91 +23,87 @@ const SelectedOptionsDisplay = ({
     if (quantity > 1) onQuantityChange(quantity - 1);
   };
 
-  // Find applicable tier price if available
   const applicableTier = pricingTiers
     .sort((a, b) => b.minQuantity - a.minQuantity)
-    .find(tier => quantity >= tier.minQuantity);
+    .find((tier) => quantity >= tier.minQuantity);
 
   const displayPrice = applicableTier ? applicableTier.pricePerUnit : price;
   const total = displayPrice * quantity;
   const imageUrl = selectedVariant.images?.[0]?.imageUrl || defaultImage || AppImages.default;
 
-  // Check if there's a better price available at higher quantity
   const nextTier = pricingTiers
     .sort((a, b) => a.minQuantity - b.minQuantity)
-    .find(tier => quantity < tier.minQuantity);
+    .find((tier) => quantity < tier.minQuantity);
 
-  // Check if quantity is at maximum stock
   const isMaxQuantity = quantity >= selectedVariant.stockQuantity;
 
   return (
-    <div>
-      <div className="p-4 border rounded-lg bg-white shadow-sm space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800">Selected Options</h3>
+    <div className="rounded-[24px] border border-gray-200 bg-[#fafafa] p-4">
+      <div className="flex items-center justify-between gap-4 border-b border-gray-200 pb-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Selected Option</h3>
+        <div className="text-right">
+          <p className="text-xs text-gray-500">Subtotal</p>
+          <p className="text-lg font-semibold text-gray-950">{formatNumberToCurrency(total)}</p>
+        </div>
+      </div>
 
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-          {/* Image & Variant Name */}
-          <div className="flex items-center space-x-4">
+      <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
             <img
               src={imageUrl}
               alt={selectedVariant.name}
-              className="w-10 h-10 object-cover rounded border"
+              className="h-16 w-14 object-cover"
             />
           </div>
-
-          <div className='items-center flex'>
-            <p className="text-sm text-gray-600">
-              {selectedVariant.name || ' '}
-            </p>
-          </div>
-
           <div>
-            <p className="text-lg text-gray-600">
-              <strong>{formatNumberToCurrency(displayPrice)}</strong>
-              {applicableTier && applicableTier.minQuantity > 1 && (
-                <span className="text-xs text-green-600 ml-1">
-                  (Bulk discount)
-                </span>
-              )}
-            </p>
-            {/*<p className="text-sm text-gray-500">
-              In Stock: {selectedVariant.stockQuantity}
-            </p>*/}
+            <p className="text-sm font-semibold text-gray-900">{selectedVariant.name || 'Standard option'}</p>
+            {selectedColor && selectedColor !== 'null' && (
+              <p className="mt-1 text-xs text-gray-500">Color: {selectedColor}</p>
+            )}
           </div>
+        </div>
 
-          {/* Quantity Controls */}
-          <div className="text-sm text-gray-600 flex items-center space-x-3">
-            <button
-              onClick={handleDecrease}
-              className={`px-2 py-1 rounded ${quantity > 1 ? 'bg-gray-200 hover:bg-gray-300' : 'bg-gray-100 cursor-not-allowed'}`}
-              disabled={quantity <= 1}
-            >
-              −
-            </button>
-            <span>{quantity}</span>
-            <button
-              onClick={handleIncrease}
-              className={`px-2 py-1 rounded ${isMaxQuantity ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-200 hover:bg-gray-300'}`}
-              disabled={isMaxQuantity}
-            >
-              +
-            </button>
-          </div>
-        </div>      
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Unit price</p>
+          <p className="mt-1 text-base font-semibold text-gray-950">
+            {formatNumberToCurrency(displayPrice)}
+          </p>
+          {applicableTier && applicableTier.minQuantity > 1 && (
+            <p className="mt-1 text-xs text-gray-500">
+              Bulk pricing applied from {applicableTier.minQuantity} units
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 justify-self-start rounded-full border border-gray-200 bg-white px-2 py-2 sm:justify-self-end">
+          <button
+            onClick={handleDecrease}
+            className={`flex h-8 w-8 items-center justify-center rounded-full ${
+              quantity > 1 ? 'bg-gray-100 text-gray-800 hover:bg-gray-200' : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+            }`}
+            disabled={quantity <= 1}
+          >
+            -
+          </button>
+          <span className="w-6 text-center text-sm font-semibold text-gray-900">{quantity}</span>
+          <button
+            onClick={handleIncrease}
+            className={`flex h-8 w-8 items-center justify-center rounded-full ${
+              isMaxQuantity ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+            }`}
+            disabled={isMaxQuantity}
+          >
+            +
+          </button>
+        </div>
       </div>
-      
-      {/* Bulk discount notice */}
+
       {nextTier && (
-        <div className="text-sm text-green-600 mt-2">
-          Buy {nextTier.minQuantity} for {formatNumberToCurrency(nextTier.pricePerUnit)} each and save!
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+          Buy {nextTier.minQuantity} or more for {formatNumberToCurrency(nextTier.pricePerUnit)} each.
         </div>
       )}
-
-      {/* Price Info */}
-      <div className="text-xl text-gray-600 flex mt-3">
-        <span className='text-lg mr-6'>Total {quantity} {quantity > 1 ? 'Items' : 'Item'}</span>
-        <span className='text-lg'>Total Cost:</span> <strong>{formatNumberToCurrency(total)}</strong>
-      </div>
     </div>
   );
 };

@@ -39,6 +39,7 @@ namespace GaStore.Core.Services.Implementations
 		private readonly ICouponService _couponService;
         private readonly IManualPaymentService _manualPaymentService;
         private readonly IPaymentMethodConfigurationService _paymentMethodConfigurationService;
+        private readonly IVoucherService _voucherService;
 
         public CheckoutService(IUnitOfWork unitOfWork, 
 			DatabaseContext context, 
@@ -53,7 +54,8 @@ namespace GaStore.Core.Services.Implementations
 			ISmsService smsService,
 			IEmailService emailService, ICartService cartService, ICouponService couponService,
             IManualPaymentService manualPaymentService,
-            IPaymentMethodConfigurationService paymentMethodConfigurationService)
+            IPaymentMethodConfigurationService paymentMethodConfigurationService,
+            IVoucherService voucherService)
 		{
 			_unitOfWork = unitOfWork;
 			_context = context;
@@ -71,6 +73,7 @@ namespace GaStore.Core.Services.Implementations
 			_couponService = couponService;
             _manualPaymentService = manualPaymentService;
             _paymentMethodConfigurationService = paymentMethodConfigurationService;
+            _voucherService = voucherService;
         }
 
 
@@ -80,10 +83,14 @@ namespace GaStore.Core.Services.Implementations
 			var response = new ServiceResponse<PaymentInitiationResponseDto>();
 			try
 			{
-				response.StatusCode = 400;
+                response.StatusCode = 400;
                 if (!string.IsNullOrWhiteSpace(summaryDto.PaymentGateway))
                 {
-                    var selectedMethodEnabled = await _paymentMethodConfigurationService.IsMethodEnabledAsync(summaryDto.PaymentGateway);
+                    var selectedMethodKey =
+                        string.Equals(summaryDto.PaymentGateway, "Manual", StringComparison.OrdinalIgnoreCase) ? "manual" :
+                        string.Equals(summaryDto.PaymentGateway, "Voucher", StringComparison.OrdinalIgnoreCase) ? "voucher" :
+                        summaryDto.PaymentGateway;
+                    var selectedMethodEnabled = await _paymentMethodConfigurationService.IsMethodEnabledAsync(selectedMethodKey);
                     if (selectedMethodEnabled.StatusCode != 200 || !selectedMethodEnabled.Data)
                     {
                         response.Message = $"{summaryDto.PaymentGateway} payment is currently disabled.";
@@ -97,6 +104,28 @@ namespace GaStore.Core.Services.Implementations
                     if (!manualEnabled.Data)
                     {
                         response.Message = "Manual payment is currently disabled.";
+                        return response;
+                    }
+                }
+                if (string.Equals(summaryDto.PaymentGateway, "Voucher", StringComparison.OrdinalIgnoreCase))
+                {
+                    var voucherEnabled = await _paymentMethodConfigurationService.IsMethodEnabledAsync("voucher");
+                    if (!voucherEnabled.Data)
+                    {
+                        response.Message = "Voucher payment is currently disabled.";
+                        return response;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(summaryDto.VoucherCode))
+                    {
+                        response.Message = "Voucher code is required.";
+                        return response;
+                    }
+
+                    var voucherValidation = await _voucherService.ValidateVoucherAsync(summaryDto.VoucherCode);
+                    if (voucherValidation.StatusCode != 200 || voucherValidation.Data == null || !voucherValidation.Data.IsValid)
+                    {
+                        response.Message = voucherValidation.Data?.Message ?? voucherValidation.Message;
                         return response;
                     }
                 }
@@ -155,6 +184,10 @@ namespace GaStore.Core.Services.Implementations
 					Tax = checkOrder.Data.Tax,
 					PaymentGateway = summaryDto.PaymentGateway,
 					PaymentGatewayTransactionId = summaryDto.PaymentGatewayTransactionId,
+                    VoucherCode = string.IsNullOrWhiteSpace(summaryDto.VoucherCode) ? null : summaryDto.VoucherCode.Trim().ToUpperInvariant(),
+                    VoucherAmountApplied = string.Equals(summaryDto.PaymentGateway, "Voucher", StringComparison.OrdinalIgnoreCase)
+                        ? (checkOrder.Data.TotalAfterDiscount ?? checkOrder.Data.Total)
+                        : null,
 					OrderDate = DateTime.UtcNow,
 					Items = orderItemDto
 					};
@@ -322,7 +355,7 @@ namespace GaStore.Core.Services.Implementations
             return response;
         }
 
-        public async Task<ServiceResponse<bool>> ProcessCheckoutWithWalletAsync(Guid userId, Guid orderId, OrderSummaryDto summaryDto)
+		public async Task<ServiceResponse<bool>> ProcessCheckoutWithWalletAsync(Guid userId, Guid orderId, OrderSummaryDto summaryDto)
 		{
 			var response = new ServiceResponse<bool>();
 
@@ -351,7 +384,7 @@ namespace GaStore.Core.Services.Implementations
 					response.Message = checkCart.Message;
 					return response;
 				}
-				decimal totalOrderAmount = checkCart.Data.SubTotal; // checkoutDto.Order.Sum(o => o.Items.Sum(i => i.Price * i.Quantity));
+				decimal totalOrderAmount = checkCart.Data.Total; // checkoutDto.Order.Sum(o => o.Items.Sum(i => i.Price * i.Quantity));
 
 					if (userWallet.Balance >= totalOrderAmount)
 					{
@@ -407,6 +440,83 @@ namespace GaStore.Core.Services.Implementations
 			}
 			return response;
 		}
+
+        public async Task<ServiceResponse<bool>> ProcessCheckoutWithVoucherAsync(Guid userId, Guid orderId, OrderSummaryDto summaryDto)
+        {
+            var response = new ServiceResponse<bool>();
+
+            try
+            {
+                var voucherEnabled = await _paymentMethodConfigurationService.IsMethodEnabledAsync("voucher");
+                if (!voucherEnabled.Data)
+                {
+                    response.StatusCode = 400;
+                    response.Message = "Voucher payment is currently disabled.";
+                    return response;
+                }
+
+                if (string.IsNullOrWhiteSpace(summaryDto.VoucherCode))
+                {
+                    response.StatusCode = 400;
+                    response.Message = "Voucher code is required.";
+                    return response;
+                }
+
+                var checkCart = await _orderService.OrderSummaryAsync(userId, summaryDto);
+                if (checkCart.StatusCode != 200)
+                {
+                    response.StatusCode = 400;
+                    response.Message = checkCart.Message;
+                    return response;
+                }
+
+                var totalOrderAmount = checkCart.Data.Total;
+                var redeemVoucher = await _voucherService.RedeemVoucherAsync(userId, orderId, summaryDto.VoucherCode, totalOrderAmount);
+                if (redeemVoucher.StatusCode != 200 || redeemVoucher.Data == null)
+                {
+                    response.StatusCode = redeemVoucher.StatusCode;
+                    response.Message = redeemVoucher.Message;
+                    response.Data = false;
+                    return response;
+                }
+
+                var order = await _unitOfWork.OrderRepository.Get(o => o.Id == orderId && o.UserId == userId);
+                if (order == null)
+                {
+                    response.StatusCode = 404;
+                    response.Message = "Order not found.";
+                    return response;
+                }
+
+                order.VoucherId = redeemVoucher.Data.Id;
+                order.VoucherCode = redeemVoucher.Data.Code;
+                order.VoucherAmountApplied = totalOrderAmount;
+                order.PaymentGateway = "Voucher";
+                order.PaymentGatewayTransactionId = redeemVoucher.Data.Code;
+                order.HasPaid = true;
+                await _unitOfWork.OrderRepository.Upsert(order);
+
+                var registerOrder = await ApprovePurchaseAsync(userId, orderId, summaryDto);
+                if (registerOrder.StatusCode == 200)
+                {
+                    await ProcessReferralCommissionAsync(userId, checkCart.Data.SubTotal, registerOrder.Data.OrderId);
+                }
+
+                await _unitOfWork.CompletedAsync(userId);
+
+                response.StatusCode = 200;
+                response.Message = "Voucher payment completed successfully.";
+                response.Data = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Voucher checkout failed for order {OrderId}", orderId);
+                response.StatusCode = 500;
+                response.Message = ErrorMessages.InternalServerError;
+            }
+
+            return response;
+        }
 
 		public async Task<ServiceResponse<bool>> VerifyTransaction(OrderSummaryDto summaryDto, string transactionId, Guid userId, Guid orderId)
         {

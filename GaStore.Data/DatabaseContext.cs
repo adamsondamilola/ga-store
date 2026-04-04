@@ -99,6 +99,8 @@ namespace GaStore.Models.Database
 
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<PaymentMethodConfiguration> PaymentMethodConfigurations { get; set; }
+        public DbSet<Voucher> Vouchers { get; set; }
+        public DbSet<VoucherRedemption> VoucherRedemptions { get; set; }
 
         // ----------------------------
         // RELATIONSHIPS & CONFIGURATIONS
@@ -217,6 +219,34 @@ namespace GaStore.Models.Database
                 .HasIndex(x => x.MethodKey)
                 .IsUnique();
 
+            modelBuilder.Entity<Voucher>()
+                .HasIndex(x => x.Code)
+                .IsUnique();
+
+            modelBuilder.Entity<Voucher>()
+                .HasOne(v => v.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(v => v.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VoucherRedemption>()
+                .HasOne(vr => vr.Voucher)
+                .WithMany(v => v.Redemptions)
+                .HasForeignKey(vr => vr.VoucherId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VoucherRedemption>()
+                .HasOne(vr => vr.Order)
+                .WithMany()
+                .HasForeignKey(vr => vr.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VoucherRedemption>()
+                .HasOne(vr => vr.User)
+                .WithMany()
+                .HasForeignKey(vr => vr.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<PaymentMethodConfiguration>()
                 .HasData(
                     new PaymentMethodConfiguration
@@ -264,6 +294,18 @@ namespace GaStore.Models.Database
                         IsGateway = false,
                         IsDefaultGateway = false,
                         SortOrder = 4,
+                        DateCreated = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc),
+                        DateUpdated = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new PaymentMethodConfiguration
+                    {
+                        Id = Guid.Parse("5ba4be93-1546-4c6e-b4af-6279fbf85fec"),
+                        MethodKey = "voucher",
+                        DisplayName = "Voucher",
+                        IsEnabled = true,
+                        IsGateway = false,
+                        IsDefaultGateway = false,
+                        SortOrder = 5,
                         DateCreated = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc),
                         DateUpdated = new DateTime(2026, 3, 26, 0, 0, 0, DateTimeKind.Utc)
                     });
@@ -385,8 +427,14 @@ namespace GaStore.Models.Database
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<LimitedOffer>()
+                .ToTable("LimitedOffers");
+
+            modelBuilder.Entity<LimitedOffer>()
                 .Property(lo => lo.DisplayOrder)
                 .HasDefaultValue(0);
+
+            modelBuilder.Entity<LimitedOfferProduct>()
+                .ToTable("LimitedOfferProducts");
 
             modelBuilder.Entity<LimitedOfferProduct>()
                 .HasIndex(lop => new { lop.LimitedOfferId, lop.ProductId })

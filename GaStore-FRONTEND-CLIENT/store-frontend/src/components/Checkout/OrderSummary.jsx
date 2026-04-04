@@ -1,5 +1,6 @@
 "use client";
 import formatNumberToCurrency from "@/utils/numberToMoney";
+import { FiCheckCircle, FiPercent, FiShield } from "react-icons/fi";
 
 export default function OrderSummary({
   subtotal,
@@ -20,6 +21,7 @@ export default function OrderSummary({
   paymentGateway,
   paymentMethods,
   manualProofFile,
+  voucherCode,
   isCheckoutReady,
 }) {
   const enabledPaymentMethods = paymentMethods || [];
@@ -32,14 +34,20 @@ export default function OrderSummary({
   const manualMethod = enabledPaymentMethods.find(
     (method) => method.methodKey === "manual" && method.isEnabled
   );
+  const voucherMethod = enabledPaymentMethods.find(
+    (method) => method.methodKey === "voucher" && method.isEnabled
+  );
 
   const hasValidPaymentSelection =
     (paymentMethod === "credit-card" &&
       gatewayMethods.some((method) => method.methodKey === paymentGateway)) ||
     (paymentMethod === "wallet" && Boolean(walletMethod)) ||
-    (paymentMethod === "manual" && Boolean(manualMethod));
+    (paymentMethod === "manual" && Boolean(manualMethod)) ||
+    (paymentMethod === "voucher" && Boolean(voucherMethod));
   const isManualProofReady =
     paymentMethod !== "manual" || Boolean(manualProofFile);
+  const isVoucherReady =
+    paymentMethod !== "voucher" || Boolean(voucherCode?.trim());
 
   const isButtonDisabled =
     isLoading ||
@@ -48,27 +56,37 @@ export default function OrderSummary({
     shippingFee < 1 ||
     enabledPaymentMethods.length === 0 ||
     !hasValidPaymentSelection ||
-    !isManualProofReady;
+    !isManualProofReady ||
+    !isVoucherReady;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-6">
-      <div className="p-6 border-b border-gray-100">
-        <h2 className="text-xl font-semibold">Order Summary</h2>
+    <div className="sticky top-24 overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 bg-[#fcfbf8] p-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff2e8] text-[#f97316]">
+            <FiShield className="text-lg" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Order Summary</h2>
+            <p className="mt-1 text-sm text-gray-500">Everything you need before you confirm payment.</p>
+          </div>
+        </div>
       </div>
 
       <div className="p-6 space-y-4">
+        <div className="rounded-2xl border border-[#f2d9c6] bg-[#fff8f3] p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <FiPercent className="text-[#f97316]" />
+            <label className="block text-sm font-semibold text-gray-900">Discount Code</label>
+          </div>
 
-        {/* Coupon */}
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <label className="block text-sm font-medium mb-2">Discount Code</label>
-
-           <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
               placeholder="Enter Code"
-              className="w-full sm:flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-lg 
-                 focus:ring-2 focus:ring-blue-500 focus:border-transparent 
+              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm
+                 focus:border-transparent focus:ring-2 focus:ring-[#f97316]
                  placeholder:text-gray-400 transition-shadow"
               disabled={isApplyingCoupon || isCouponSuccessful}
             />
@@ -77,65 +95,68 @@ export default function OrderSummary({
               type="button"
               onClick={applyCoupon}
               disabled={isApplyingCoupon || isCouponSuccessful}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
+              className="rounded-xl bg-[#f97316] px-4 py-2 font-medium text-white transition hover:bg-[#ea580c]"
             >
               {isApplyingCoupon ? "..." : isCouponSuccessful ? "Applied" : "Apply"}
             </button>
           </div>
 
           {discountPercentage > 0 && (
-            <p className="text-green-600 mt-2 text-sm">
+            <p className="mt-2 flex items-center gap-2 text-sm text-green-700">
+              <FiCheckCircle />
               {discountPercentage}% discount applied!
             </p>
           )}
         </div>
 
-        {/* Breakdown */}
-        <div className="space-y-3">
-          <div className="flex justify-between text-gray-600">
+        <div className="space-y-3 rounded-2xl border border-gray-200 bg-[#faf9f6] p-4">
+          <div className="flex justify-between text-sm text-gray-600">
             <span>Subtotal</span>
             <span>{formatNumberToCurrency(subtotal)}</span>
           </div>
 
           {discountPercentage > 0 && (
-            <div className="flex justify-between text-green-600">
+            <div className="flex justify-between text-sm text-green-700">
               <span>Discount ({discountPercentage}%)</span>
               <span>-{formatNumberToCurrency((subtotal * discountPercentage) / 100)}</span>
             </div>
           )}
 
-          <div className="flex justify-between text-gray-600">
+          <div className="flex justify-between text-sm text-gray-600">
             <span>Shipping</span>
             <span>{formatNumberToCurrency(shippingFee)}</span>
           </div>
 
           {tax > 0 && (
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-sm text-gray-600">
               <span>Tax ({vat}%)</span>
               <span>{formatNumberToCurrency(tax)}</span>
             </div>
           )}
 
-          <div className="border-t pt-3 mt-3 flex justify-between font-bold text-lg">
-            <span>Total</span>
-            <span className="text-blue-600">
+          <div className="mt-3 flex items-center justify-between border-t border-gray-200 pt-4 text-lg font-bold">
+            <span className="text-gray-900">Total</span>
+            <span className="text-[#f97316]">
               {formatNumberToCurrency(totalAfterDiscountCalc)}
             </span>
           </div>
         </div>
 
-        {/* Complete Order Button */}
         <button
           onClick={handlePaymentSubmit}
           disabled={isButtonDisabled}
-          className={`w-full py-3 mt-4 rounded-lg transition font-medium ${
+          className={`mt-2 w-full rounded-full py-3.5 text-sm font-semibold transition ${
             isButtonDisabled
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-black text-white hover:bg-gray-800 active:scale-95"
-          }`}
+              : "bg-gray-950 text-white hover:bg-black active:scale-95"
+            }`}
         >
           {isLoading ? "Processing..." : "Complete Order"}
         </button>
+
+        <p className="text-center text-xs leading-5 text-gray-500">
+          By completing your order, you confirm your delivery and payment details are correct.
+        </p>
       </div>
     </div>
   );

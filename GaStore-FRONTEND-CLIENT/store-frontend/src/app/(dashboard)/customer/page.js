@@ -1,9 +1,9 @@
-import UserProfileView from "@/components/Dashboard/Profile";
+import CustomerDashboardHome from "@/components/Dashboard/Home";
 
 export default async function AccountPage() {
   return (
       <main className="">
-<UserProfileView/>
+<CustomerDashboardHome/>
       </main>
   );
 }

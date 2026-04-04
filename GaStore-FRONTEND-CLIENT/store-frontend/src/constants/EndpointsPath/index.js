@@ -33,6 +33,7 @@ const endpointsPath = {
     checkout: 'Checkout',
     manualPayment: 'ManualPayment',
     paymentMethodConfiguration: 'PaymentMethodConfiguration',
+    voucher: 'Voucher',
     paystack: 'Paystack',
     referral: 'Referral',
     subscriber: 'Subscriber',

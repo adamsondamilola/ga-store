@@ -1,4 +1,5 @@
 'use client'
+import DesktopCartRail from "@/components/layout/DesktopCartRail";
 import { useEffect, useState } from "react";
 import ProductList from "../ProductList";
 import requestHandler from "@/utils/requestHandler";
@@ -23,7 +24,8 @@ export default function ProductListMain({endpointsPath, search}) {
   useEffect(()=>{
     async function getProducts() {
   try {
-    const res = await requestHandler.getServerSide(`${endpointsPath}?searchTerm=${search}&pageNumber=1&pageSize=1000`, false);
+    const normalizedSearch = typeof search === 'string' ? search.trim() : '';
+    const res = await requestHandler.getServerSide(`${endpointsPath}?searchTerm=${encodeURIComponent(normalizedSearch)}&pageNumber=1&pageSize=1000`, false);
     setProducts(res?.result?.data || []);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -33,12 +35,17 @@ export default function ProductListMain({endpointsPath, search}) {
   }
 }
 getProducts();
-  }, [])
+  }, [endpointsPath, search])
 
   return (
-      <div>
-        <ProductList products={products} />
-        <Spinner loading={loading} />
+      <div className="mx-auto w-full max-w-[1400px] px-4">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_172px] xl:items-start">
+          <div className="min-w-0">
+            <ProductList products={products} />
+            <Spinner loading={loading} />
+          </div>
+          <DesktopCartRail className="xl:sticky xl:top-24" />
+        </div>
       </div>
   );
 }

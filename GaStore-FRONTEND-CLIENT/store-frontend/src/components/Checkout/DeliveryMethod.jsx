@@ -46,14 +46,17 @@ export default function DeliveryMethod({
 
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-6 border-b border-gray-100">
+    <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 bg-[#fcfbf8] p-6">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center mb-2">
-              <FiTruck className="mr-3 text-blue-600" />
+            <h2 className="mb-2 flex items-center text-xl font-semibold text-gray-900">
+              <FiTruck className="mr-3 text-[#f97316]" />
               Select Delivery Method
             </h2>
+            <p className="text-sm text-gray-500">
+              Pick the delivery option that works best for this order and location.
+            </p>
           </div>
         </div>
       </div>
@@ -64,7 +67,7 @@ export default function DeliveryMethod({
             onClick={handleSelectPickup}
             className={`p-6 rounded-xl border-2 transition-all ${
               deliveryMethodSelected && !isDoorStepDelivery && deliveryFee2 > 0
-                ? "border-blue-500 bg-blue-50 shadow-sm"
+                ? "border-[#f6c8a9] bg-[#fff7f1] shadow-sm"
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
@@ -72,7 +75,7 @@ export default function DeliveryMethod({
               <div
                 className={`p-3 rounded-lg ${
                   deliveryMethodSelected && !isDoorStepDelivery && deliveryFee2 > 0
-                    ? "bg-blue-500 text-white"
+                    ? "bg-[#f97316] text-white"
                     : "bg-gray-100 text-gray-600"
                 }`}
               >
@@ -91,7 +94,7 @@ export default function DeliveryMethod({
               </div>
 
               {deliveryMethodSelected && !isDoorStepDelivery && deliveryFee2 > 0 && (
-                <Check className="ml-auto text-blue-500" />
+                <Check className="ml-auto text-[#f97316]" />
               )}
             </div>
           </button>
@@ -101,7 +104,7 @@ export default function DeliveryMethod({
               onClick={handleSelectDoorstep}
               className={`p-6 rounded-xl border-2 transition-all ${
                 deliveryMethodSelected && isDoorStepDelivery
-                  ? "border-blue-500 bg-blue-50 shadow-sm"
+                  ? "border-[#f6c8a9] bg-[#fff7f1] shadow-sm"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
@@ -109,7 +112,7 @@ export default function DeliveryMethod({
                 <div
                   className={`p-3 rounded-lg ${
                     deliveryMethodSelected && isDoorStepDelivery
-                      ? "bg-blue-500 text-white"
+                      ? "bg-[#f97316] text-white"
                       : "bg-gray-100 text-gray-600"
                   }`}
                 >
@@ -128,7 +131,7 @@ export default function DeliveryMethod({
                 </div>
 
                 {deliveryFee > 0 && deliveryMethodSelected && isDoorStepDelivery && (
-                  <Check className="ml-auto text-blue-500" />
+                  <Check className="ml-auto text-[#f97316]" />
                 )}
               </div>
             </button>

@@ -134,6 +134,7 @@ export default function ManualPaymentAccounts() {
     }
   };
 
+
   const handlePaymentMethodToggle = (methodKey) => {
     setPaymentMethods((prev) =>
       prev.map((method) =>
@@ -382,6 +383,7 @@ export default function ManualPaymentAccounts() {
           </div>
         )}
       </div>
+
     </div>
   );
 }

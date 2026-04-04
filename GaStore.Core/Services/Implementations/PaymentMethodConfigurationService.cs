@@ -233,6 +233,17 @@ namespace GaStore.Core.Services.Implementations
                     SortOrder = 4,
                     DateCreated = PaymentMethodSeedDate,
                     DateUpdated = PaymentMethodSeedDate
+                },
+                new()
+                {
+                    Id = Guid.Parse("5ba4be93-1546-4c6e-b4af-6279fbf85fec"),
+                    MethodKey = "voucher",
+                    DisplayName = "Voucher",
+                    IsEnabled = true,
+                    IsGateway = false,
+                    SortOrder = 5,
+                    DateCreated = PaymentMethodSeedDate,
+                    DateUpdated = PaymentMethodSeedDate
                 }
             };
 

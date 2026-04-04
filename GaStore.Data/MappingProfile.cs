@@ -5,6 +5,7 @@ using GaStore.Data.Dtos.ProductsDto;
 using GaStore.Data.Dtos.ReferralDto;
 using GaStore.Data.Dtos.SubscribersDto;
 using GaStore.Data.Dtos.UsersDto;
+using GaStore.Data.Dtos.VouchersDto;
 using GaStore.Data.Dtos.WalletsDto;
 using GaStore.Data.Entities.Ads;
 using GaStore.Data.Entities.Coupons;
@@ -149,6 +150,7 @@ namespace GaStore.Data
             CreateMap<Subscriber, SubscriberDto>().ReverseMap();
             CreateMap<Subscriber, CreateSubscriberDto>().ReverseMap();
             CreateMap<PaymentMethodConfiguration, PaymentMethodConfigurationDto>().ReverseMap();
+            CreateMap<Voucher, VoucherDto>().ReverseMap();
 
             // Coupon
             CreateMap<Coupon, CouponDto>().ReverseMap();

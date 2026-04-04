@@ -34,6 +34,14 @@ namespace GaStore.Controllers
 		}
 
         [Authorize(Roles = CustomRoles.User)]
+        [HttpPost("voucher")]
+        public async Task<ActionResult<ServiceResponse<bool>>> CheckoutWithVoucher([FromBody] OrderSummaryDto summaryDto, [FromQuery] Guid orderId)
+        {
+            var response = await _checkoutService.ProcessCheckoutWithVoucherAsync(UserId, orderId, summaryDto);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        [Authorize(Roles = CustomRoles.User)]
         [HttpPost("register-purchase")]
         [EnableRateLimiting("payment-gateway")]
         public async Task<ActionResult<ServiceResponse<PaymentInitiationResponseDto>>> RegisterPurchase([FromBody] OrderSummaryDto summaryDto)

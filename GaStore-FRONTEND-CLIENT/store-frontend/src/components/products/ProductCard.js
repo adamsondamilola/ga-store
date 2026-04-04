@@ -5,11 +5,12 @@ import { stringToSLug } from '@/utils/stringToSlug';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FiShoppingCart, FiMinus, FiPlus, FiX, FiChevronDown } from 'react-icons/fi';
+import { FiShoppingCart, FiMinus, FiPlus, FiX, FiStar, FiPackage } from 'react-icons/fi';
 
-export default function ProductCard({ product, viewAll = true, featured = false }) {
+export default function ProductCard({ product, viewAll = true, featured = false, className = '' }) {
   const [isInCart, setIsInCart] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [modalPreviewImage, setModalPreviewImage] = useState(null);
   const [selectedTiers, setSelectedTiers] = useState({});
   const [quantity, setQuantity] = useState(1);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -63,6 +64,9 @@ export default function ProductCard({ product, viewAll = true, featured = false 
     
     return Math.min(...allPrices);
   };
+
+  const productData = getProductData();
+  const priceVariants = getPriceVariants();
 
   // Save product to recently viewed when clicked
   const saveToRecentlyViewed = () => {
@@ -147,11 +151,27 @@ export default function ProductCard({ product, viewAll = true, featured = false 
         setCurrentPrice(tier.pricePerUnit);
         setOriginalPrice(tier.pricePerUnitGlobal || tier.pricePerUnit);
       }
+
+      setModalPreviewImage(
+        defaultVariant?.images?.[0]?.imageUrl ||
+        productData?.images?.[0]?.imageUrl ||
+        AppImages.default
+      );
     }
 
     // Check initial cart status
     checkCartStatus();
-  }, [getProductData().id, getProductData().variants]);
+  }, [productData?.id, productData?.variants, productData?.variantsDto]);
+
+  useEffect(() => {
+    if (selectedVariant) {
+      setModalPreviewImage(
+        selectedVariant?.images?.[0]?.imageUrl ||
+        productData?.images?.[0]?.imageUrl ||
+        AppImages.default
+      );
+    }
+  }, [selectedVariant, productData?.images]);
 
   // Listen for cart updates
   useEffect(() => {
@@ -327,6 +347,11 @@ export default function ProductCard({ product, viewAll = true, featured = false 
   };
 
   const updateVariantQuantity = (variantId, newQuantity) => {
+    const variant = priceVariants.find(item => item.variantId === variantId);
+    if (variant) {
+      setSelectedVariant(variant);
+    }
+
     setVariantQuantities(prev => ({
       ...prev,
       [variantId]: Math.max(0, newQuantity)
@@ -334,6 +359,11 @@ export default function ProductCard({ product, viewAll = true, featured = false 
   };
 
   const updateSelectedTier = (variantId, tier) => {
+    const variant = priceVariants.find(item => item.variantId === variantId);
+    if (variant) {
+      setSelectedVariant(variant);
+    }
+
     setSelectedTiers(prev => ({
       ...prev,
       [variantId]: tier
@@ -354,11 +384,9 @@ export default function ProductCard({ product, viewAll = true, featured = false 
     }, 0);
   };
 
-  const priceVariants = getPriceVariants();
   const fromPrice = getFromPrice();
   const discount = calculateDiscount(currentPrice, originalPrice);
   const hasMultipleOptions = priceVariants.length > 1 || (priceVariants[0]?.pricingTiers.length > 1);
-  const productData = getProductData();
 
   // Get the lowest price from all variants for display
   const getLowestPrice = () => {
@@ -373,32 +401,58 @@ export default function ProductCard({ product, viewAll = true, featured = false 
   };
 
   const displayPrice = getDisplayPrice();
+  const modalGalleryImages = [
+    ...(selectedVariant?.images?.map((image) => image?.imageUrl).filter(Boolean) || []),
+    ...(productData?.images?.map((image) => image?.imageUrl).filter(Boolean) || [])
+  ].filter((image, index, arr) => arr.indexOf(image) === index);
+  const brandName = productData?.brand?.name;
+  const totalStock = priceVariants.reduce((total, variant) => total + (variant?.stockQuantity || 0), 0);
+  const activeImage = selectedVariant?.images?.[0]?.imageUrl || priceVariants[0]?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default;
+  const quickMeta = selectedVariant?.weight ? `${(parseFloat(selectedVariant.weight) / 1000).toFixed(1)}kg` : null;
+  const optionLabel = hasMultipleOptions ? `${priceVariants.length} option${priceVariants.length > 1 ? 's' : ''}` : null;
+  const primaryTag = discount > 0 ? `${discount}% OFF` : (hasMultipleOptions ? 'Multi option' : 'In stock');
+  const secondaryMeta = totalStock > 0 ? `${totalStock} available` : 'Out of stock';
 
   return (
     <>
-      <div className={`group bg-white shadow rounded-md overflow-hidden hover:shadow-lg transition-all duration-200 relative border border-gray-100 ${
-        viewAll ? 'h-full' : 'h-full'
-      } ${!featured ? 'rounded-lg shadow-sm hover:shadow-md' : ''}`}>
-        {/* Product Image Container */}
-        <div className={viewAll ? "relative h-42 w-full aspect-square overflow-hidden" : "relative w-full h-24 overflow-hidden"}>
+      <div className={`group relative h-full overflow-hidden rounded-[18px] border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md ${className}`}>
+        <div className={viewAll ? "relative aspect-[0.94] w-full overflow-hidden bg-[#f7f7f5]" : "relative h-24 w-full overflow-hidden bg-[#f7f7f5]"}>
           <Link 
             href={`/product/${stringToSLug(productData?.name)}?id=${productData?.id}`}
             onClick={saveToRecentlyViewed}
           >
             <img
-              src={selectedVariant?.images?.[0]?.imageUrl || priceVariants[0]?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default}
+              src={activeImage}
               alt={productData?.name}
-              className={`w-full h-full object-cover transition-transform duration-300 ${
+              className={`h-full w-full object-cover transition-transform duration-300 ${
                 viewAll || !featured ? "group-hover:scale-105" : ""
               }`}
               loading="lazy"
             />
           </Link>
-          
-          {/* Quick Add to Cart Button (shown on hover) */}
+
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-2.5">
+            <div className="pointer-events-auto inline-flex max-w-[70%] items-center rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-gray-700 shadow-sm ring-1 ring-black/5 backdrop-blur">
+              {primaryTag}
+            </div>
+
+            <button 
+              onClick={addToCartDirect}
+              className="pointer-events-auto relative rounded-full border border-white/80 bg-white/95 p-2 text-gray-800 shadow-sm transition-all hover:bg-white"
+              aria-label={isInCart ? 'Add more of this item to cart' : 'Add to cart'}
+            >
+              <FiShoppingCart className="text-base" />
+              {isInCart && quantity > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gray-900 px-1 text-[10px] font-semibold leading-none text-white">
+                  {quantity}
+                </span>
+              )}
+            </button>
+          </div>
+
           <div className={`absolute inset-x-0 bottom-0 ${
             viewAll ? "translate-y-full group-hover:translate-y-0 h-16" : "translate-y-full group-hover:translate-y-0 h-12"
-          } transition-transform duration-300 bg-gradient-to-t from-black/60 to-transparent`}>
+          } transition-transform duration-300 bg-gradient-to-t from-black/50 via-black/10 to-transparent`}>
             {isInCart && !hasMultipleOptions ? (
               <div className={`absolute ${
                 viewAll ? "bottom-3 w-11/12" : "bottom-2 w-10/12"
@@ -439,123 +493,242 @@ export default function ProductCard({ product, viewAll = true, featured = false 
               </button>
             )}
           </div>
-          
-          {/* Floating Cart Button */}
-          <button 
-            onClick={addToCartDirect}
-            className={`absolute ${
-              viewAll ? "top-2 right-2" : "top-2 right-2"
-            } rounded-full p-2 shadow-md transition-all z-10 ${
-              isInCart 
-                ? 'bg-green-500 text-white hover:bg-green-600' 
-                : 'bg-white/90 hover:bg-white text-gray-800'
-            }`}
-            aria-label={isInCart ? 'Remove from cart' : 'Add to cart'}
-          >
-            <FiShoppingCart className="text-lg" />
-          </button>
-          
-          {/* Discount Badge */}
-          {(viewAll || !featured) && discount > 0 && !isInCart && (
-            <span className={`absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10 ${
-              featured ? 'font-bold' : ''
-            }`}>
-              {featured ? `${discount}% OFF` : `- ${discount}%`}
-            </span>
-          )}
         </div>
         
-        {/* Product Info */}
-        <div className="p-3">
+        <div className="space-y-2.5 p-3">
           <Link 
             href={`/product/${stringToSLug(productData?.name)}?id=${productData?.id}`}
             onClick={saveToRecentlyViewed}
           >
-            <h3 className={`font-medium text-gray-900 line-clamp-2 mb-1 ${
-              !featured ? 'truncate text-sm md:text-base' : ''
-            }`}>
+            <h3 className="line-clamp-2 min-h-[2.5rem] text-[13px] font-medium leading-5 text-gray-800 sm:text-sm">
               {productData?.name}
             </h3>
-            
-            <div className="flex flex-col items-start">
-              <span className="font-bold text-lg text-gray-800">
-                {formatNumberToCurrency(displayPrice)}
-              </span>
-              {(viewAll || !featured) && discount > 0 && originalPrice > currentPrice && (
-                <div className="flex items-center mt-0.5">
-                  <span className="text-sm line-through text-gray-400 mr-2">
-                    {formatNumberToCurrency(originalPrice)}
-                  </span>
-                </div>
-              )}
-              
-              {/* Show "from price" for non-featured cards with multiple options */}
-              {!featured && hasMultipleOptions && fromPrice < displayPrice && (
-                <span className="text-xs text-blue-500 font-medium">
-                  Starting from {formatNumberToCurrency(fromPrice)}
-                </span>
-              )}
-            </div>
           </Link>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500">
+            {brandName && (
+              <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-600">
+                {brandName}
+              </span>
+            )}
+            {optionLabel && (
+              <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-600">
+                {optionLabel}
+              </span>
+            )}
+            {quickMeta && (
+              <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-600">
+                {quickMeta}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-end gap-2">
+            <span className="text-xl font-bold leading-none text-[#f97316]">
+              {formatNumberToCurrency(displayPrice)}
+            </span>
+            {(viewAll || !featured) && discount > 0 && originalPrice > currentPrice && (
+              <span className="pb-0.5 text-xs text-gray-400 line-through">
+                {formatNumberToCurrency(originalPrice)}
+              </span>
+            )}
+          </div>
+
+          {!featured && hasMultipleOptions && fromPrice < displayPrice && (
+            <div className="text-[11px] font-medium text-gray-500">
+              From {formatNumberToCurrency(fromPrice)}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3 text-[11px] text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <FiStar className="text-[12px] text-[#f59e0b]" />
+              <span className="font-medium text-gray-700">{discount > 0 ? 'Hot deal' : 'Popular item'}</span>
+            </div>
+            <div className="truncate">{secondaryMeta}</div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+              <FiPackage className="text-[12px]" />
+              <span>{hasMultipleOptions ? 'Quick Add available' : 'Ready to add'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={addToCartDirect}
+              className="inline-flex items-center justify-center rounded-full border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-gray-800 transition hover:border-gray-300 hover:bg-gray-50"
+            >
+              {hasMultipleOptions ? 'Quick Add' : 'Add'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Options Modal */}
       {showOptionsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="max-w-[80%]">
-                <h3 className="font-semibold text-lg text-gray-900 truncate">{productData?.name}</h3>
-                <p className="text-sm text-gray-500">Select variants and quantities</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm">
+          <div className="max-h-[88vh] w-full max-w-[72rem] overflow-hidden rounded-[24px] bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div className="max-w-[85%]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-400">Quick Add</p>
+                <h3 className="mt-1 line-clamp-1 text-lg font-semibold text-gray-900">{productData?.name}</h3>
+                <p className="mt-1 text-xs text-gray-500">Choose your preferred option and quantity</p>
               </div>
               <button 
                 onClick={() => setShowOptionsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="rounded-full p-2 transition-colors hover:bg-gray-100"
               >
                 <FiX size={20} className="text-gray-500" />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
-              {/* Variant Selection with Quantity Controls and Bulk Pricing */}
-              <div className="space-y-6">
-                {priceVariants.map(variant => {
+            <div className="grid max-h-[calc(88vh-84px)] gap-0 overflow-y-auto lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="border-b border-gray-200 bg-[#fbfbfb] p-4 lg:border-b-0 lg:border-r">
+                <div className="overflow-hidden rounded-[20px] bg-white ring-1 ring-gray-200">
+                  <img
+                    src={modalPreviewImage || selectedVariant?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default}
+                    alt={productData?.name}
+                    className="h-[250px] w-full object-cover sm:h-[340px]"
+                  />
+                </div>
+
+                {modalGalleryImages.length > 0 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {modalGalleryImages.slice(0, 6).map((image, index) => (
+                      <button
+                        key={`${image}-${index}`}
+                        type="button"
+                        onClick={() => setModalPreviewImage(image)}
+                        className={`overflow-hidden rounded-2xl border transition-all ${
+                          modalPreviewImage === image
+                            ? 'border-gray-900 ring-1 ring-gray-900'
+                            : 'border-gray-200 hover:border-gray-400'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`${productData?.name} preview ${index + 1}`}
+                          className="h-16 w-12 object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 lg:p-5">
+                <div className="mb-4 border-b border-gray-100 pb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-gray-900 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                      Multi-option item
+                    </span>
+                    {discount > 0 && (
+                      <span className="rounded-full border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                        Save {discount}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-1.5">
+                    <span className="text-2xl font-semibold tracking-tight text-gray-950">
+                      {formatNumberToCurrency(getTotalQuantity() > 0 ? getTotalPrice() : displayPrice)}
+                    </span>
+                    {originalPrice > displayPrice && (
+                      <span className="text-sm text-gray-400 line-through">
+                        {formatNumberToCurrency(originalPrice)}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    {getTotalQuantity() > 0
+                      ? `${getTotalQuantity()} item${getTotalQuantity() > 1 ? 's' : ''} selected across variants`
+                      : `Starting from ${formatNumberToCurrency(fromPrice)} depending on selected option`}
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {priceVariants.map(variant => {
                   const variantQty = variantQuantities[variant.variantId] || 0;
                   const selectedTier = selectedTiers[variant.variantId] || variant.pricingTiers[0];
                   const variantPrice = selectedTier?.pricePerUnit || variant.lowestPrice;
                   const variantTotal = variantPrice * variantQty;
                   const hasMultipleTiers = variant.pricingTiers.length > 1;
+                  const isActiveVariant = selectedVariant?.variantId === variant.variantId;
                   
                   return (
-                    <div key={variant.variantId} className="border border-gray-200 rounded-lg p-4">
-                      {/* Variant Header */}
-                      <div className="flex justify-between items-start mb-3">
+                    <div
+                      key={variant.variantId}
+                      className={`rounded-[20px] border p-3 transition-all ${
+                        isActiveVariant ? 'border-gray-900 bg-gray-50' : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="mb-3 flex items-start gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedVariant(variant);
+                            setModalPreviewImage(
+                              variant.images?.[0]?.imageUrl ||
+                              productData?.images?.[0]?.imageUrl ||
+                              AppImages.default
+                            );
+                          }}
+                          className="overflow-hidden rounded-2xl border border-gray-200"
+                        >
+                          <img
+                            src={variant.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default}
+                            alt={variant.variantName}
+                            className="h-16 w-12 object-cover"
+                          />
+                        </button>
+
                         <div className="flex-1">
-                          <span className="font-medium text-gray-900 block text-lg">{variant.variantName}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedVariant(variant);
+                              setModalPreviewImage(
+                                variant.images?.[0]?.imageUrl ||
+                                productData?.images?.[0]?.imageUrl ||
+                                AppImages.default
+                              );
+                            }}
+                            className="text-left"
+                          >
+                            <span className="block text-sm font-semibold text-gray-900">{variant.variantName}</span>
+                          </button>
                           {variant.weight && (
-                            <span className="text-xs text-gray-500">
+                            <span className="mt-1 block text-xs text-gray-500">
                               {(parseFloat(variant.weight)/1000).toFixed(1) || 0.1}kg
                             </span>
                           )}
+
+                          <div className="mt-2">
+                            <span className="text-base font-semibold text-gray-900">
+                              {formatNumberToCurrency(variantPrice)}
+                            </span>
+                            {selectedTier?.pricePerUnitGlobal && selectedTier.pricePerUnit < selectedTier.pricePerUnitGlobal && (
+                              <span className="ml-2 text-xs text-gray-400 line-through">
+                                {formatNumberToCurrency(selectedTier.pricePerUnitGlobal)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        
-                        {/* Quantity Selector */}
-                        <div className="flex items-center space-x-3 ml-4">
+
+                        <div className="ml-auto flex items-center rounded-full border border-gray-200 bg-white px-1 py-1 shadow-sm">
                           <button
                             onClick={() => updateVariantQuantity(variant.variantId, variantQty - 1)}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50"
                             aria-label="Decrease quantity"
                             disabled={variantQty <= 0}
                           >
                             <FiMinus size={14} />
                           </button>
-                          <span className="w-8 text-center font-medium text-lg">{variantQty}</span>
+                          <span className="w-7 text-center text-sm font-semibold text-gray-900">{variantQty}</span>
                           <button
                             onClick={() => updateVariantQuantity(variant.variantId, variantQty + 1)}
-                            className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50"
                             aria-label="Increase quantity"
                             disabled={variantQty >= (variant.stockQuantity || 99)}
                           >
@@ -564,11 +737,10 @@ export default function ProductCard({ product, viewAll = true, featured = false 
                         </div>
                       </div>
 
-                      {/* Bulk Pricing - Horizontal Scrollable Cards */}
                       {hasMultipleTiers && (
-                        <div className="mt-4">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Bulk Pricing Options:</h5>
-                          <div className="flex space-x-2 overflow-x-auto pb-2 scrollable scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        <div className="mt-3">
+                          <h5 className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Pricing options</h5>
+                          <div className="flex space-x-2 overflow-x-auto pb-2">
                             {variant.pricingTiers.map((tier, index) => {
                               const isSelected = selectedTier?.minQuantity === tier.minQuantity;
                               const tierDiscount = calculateDiscount(tier.pricePerUnit, tier.pricePerUnitGlobal || tier.pricePerUnit);
@@ -577,15 +749,15 @@ export default function ProductCard({ product, viewAll = true, featured = false 
                                 <button
                                   key={index}
                                   onClick={() => updateSelectedTier(variant.variantId, tier)}
-                                  className={`flex-shrink-0 w-48 p-3 rounded-lg border-2 text-left transition-all ${
+                                  className={`w-36 flex-shrink-0 rounded-2xl border p-2.5 text-left transition-all ${
                                     isSelected
-                                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                                      ? 'border-gray-900 bg-white shadow-sm'
+                                      : 'border-gray-200 bg-white hover:border-gray-400'
                                   }`}
                                 >
-                                  <div className="flex justify-between items-start">
+                                  <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <span className="font-medium text-gray-900 block text-sm">
+                                      <span className="block text-xs font-medium text-gray-900">
                                         {tier.minQuantity && tier.maxQuantity 
                                           ? `${tier.minQuantity}-${tier.maxQuantity} units`
                                           : tier.minQuantity 
@@ -594,24 +766,24 @@ export default function ProductCard({ product, viewAll = true, featured = false 
                                         }
                                       </span>
                                       {tierDiscount > 0 && (
-                                        <span className="text-xs text-red-500 font-medium">
+                                        <span className="text-[11px] font-medium text-gray-500">
                                           Save {tierDiscount}%
                                         </span>
                                       )}
                                     </div>
                                     <div className="text-right">
-                                      <span className="font-semibold text-gray-900 block">
+                                      <span className="block text-sm font-semibold text-gray-900">
                                         {formatNumberToCurrency(tier.pricePerUnit)}
                                       </span>
                                       {tier.pricePerUnitGlobal && tier.pricePerUnit < tier.pricePerUnitGlobal && (
-                                        <span className="text-xs line-through text-gray-500">
+                                        <span className="text-[11px] line-through text-gray-500">
                                           {formatNumberToCurrency(tier.pricePerUnitGlobal)}
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                   {isSelected && variantQty > 0 && (
-                                    <div className="mt-2 text-xs text-blue-600 font-medium">
+                                    <div className="mt-2 text-[11px] font-medium text-gray-700">
                                       Selected for {variantQty} units
                                     </div>
                                   )}
@@ -622,17 +794,16 @@ export default function ProductCard({ product, viewAll = true, featured = false 
                         </div>
                       )}
 
-                      {/* Variant Total */}
                       {variantQty > 0 && (
-                        <div className="border-t border-gray-100 pt-3 mt-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Variant total:</span>
-                            <span className="font-semibold text-green-600 text-lg">
+                        <div className="mt-3 border-t border-gray-200 pt-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Variant total</span>
+                            <span className="text-base font-semibold text-gray-900">
                               {formatNumberToCurrency(variantTotal)}
                             </span>
                           </div>
                           {hasMultipleTiers && selectedTier && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="mt-1 text-[11px] text-gray-500">
                               Using {selectedTier.minQuantity && selectedTier.maxQuantity 
                                 ? `${selectedTier.minQuantity}-${selectedTier.maxQuantity} units`
                                 : selectedTier.minQuantity 
@@ -645,37 +816,34 @@ export default function ProductCard({ product, viewAll = true, featured = false 
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Grand Total Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 mt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Total Quantity:</span>
-                  <span className="font-semibold">{getTotalQuantity()} units</span>
                 </div>
-                <div className="border-t border-gray-200 pt-2 mt-2">
-                  <div className="flex justify-between items-center text-lg font-bold">
-                    <span>Grand Total:</span>
-                    <span className="text-green-600 text-xl">
-                      {formatNumberToCurrency(getTotalPrice())}
-                    </span>
+
+                <div className="mt-4 rounded-[20px] border border-gray-200 bg-[#fafafa] p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Total quantity</span>
+                    <span className="text-sm font-semibold text-gray-900">{getTotalQuantity()} units</span>
                   </div>
+                  <div className="mt-2 border-t border-gray-200 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-900">Grand total</span>
+                      <span className="text-xl font-semibold tracking-tight text-gray-950">
+                        {formatNumberToCurrency(getTotalPrice())}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={addToCartWithOptions}
+                    disabled={getTotalQuantity() === 0}
+                    className="mt-3 flex w-full items-center justify-center space-x-2 rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300"
+                  >
+                    <FiShoppingCart size={18} />
+                    <span>
+                      Add {getTotalQuantity()} to Cart - {formatNumberToCurrency(getTotalPrice())}
+                    </span>
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-200 bg-white">
-              <button
-                onClick={addToCartWithOptions}
-                disabled={getTotalQuantity() === 0}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-sm"
-              >
-                <FiShoppingCart size={18} />
-                <span>
-                  Add {getTotalQuantity()} to Cart - {formatNumberToCurrency(getTotalPrice())}
-                </span>
-              </button>
             </div>
           </div>
         </div>

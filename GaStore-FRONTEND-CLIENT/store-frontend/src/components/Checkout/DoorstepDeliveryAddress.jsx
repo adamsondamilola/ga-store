@@ -236,24 +236,27 @@ export default function DoorstepDeliveryAddress({
   // if (!isDoorStepDelivery) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="rounded-[24px] border border-gray-200 bg-white shadow-sm">
 
       {/*If address is null, ask to fill address first*/}
       {!selectedAddress &&
         AddAddressComponent()
       }
-      <div className="p-6 border-b border-gray-100">
+      <div className="border-b border-gray-100 bg-[#fcfbf8] p-6">
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <FiMapPin className="mr-3 text-blue-600" />
+              <FiMapPin className="mr-3 text-[#f97316]" />
               Address
             </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              Select a saved address or add a new one so we can calculate the right delivery option.
+            </p>
           </div>
 
           <button
             onClick={() => setHideAddresses(!hideAddresses)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium whitespace-nowrap ml-4"
+            className="ml-4 whitespace-nowrap text-sm font-medium text-[#f97316] hover:text-[#ea580c]"
           >
             {hideAddresses ? "Show" : "Hide"}
           </button>

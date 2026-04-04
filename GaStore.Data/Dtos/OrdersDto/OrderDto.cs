@@ -14,6 +14,9 @@ namespace GaStore.Data.Dtos.OrdersDto
         public Guid? UserId { get; set; }
         public string? PaymentGatewayTransactionId { get; set; }
         public string? PaymentGateway { get; set; }
+        public Guid? VoucherId { get; set; }
+        public string? VoucherCode { get; set; }
+        public decimal? VoucherAmountApplied { get; set; }
         public virtual User User { get; set; }
         [Required]
 		public bool HasPaid { get; set; }

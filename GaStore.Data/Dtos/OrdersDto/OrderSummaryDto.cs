@@ -31,6 +31,8 @@ namespace GaStore.Data.Dtos.OrdersDto
         public Guid? OrderId { get; set; }
         public string? PaymentGatewayTransactionId { get; set; }
         public string? PaymentGateway { get; set; }
+        public string? VoucherCode { get; set; }
+        public decimal? VoucherAmountApplied { get; set; }
         public List<CartProducts>? CartProducts { get; set; }
 	}
 

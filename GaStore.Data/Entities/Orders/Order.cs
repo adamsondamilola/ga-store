@@ -23,6 +23,9 @@ namespace GaStore.Data.Entities.Orders
         public decimal? Tax { get; set; }
         public string? PaymentGateway { get; set; }
         public string? PaymentGatewayTransactionId { get; set; }
+        public Guid? VoucherId { get; set; }
+        public string? VoucherCode { get; set; }
+        public decimal? VoucherAmountApplied { get; set; }
         [Required]
 		public DateTime OrderDate { get; set; }
 

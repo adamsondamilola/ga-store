@@ -55,6 +55,22 @@ namespace GaStore.Core.Services.Implementations
             return parts.Length > 0 ? parts[0] : string.Empty;
         }
 
+        private static List<string> GetSearchTokens(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return new List<string>();
+
+            var cleaned = new string(input
+                .ToLowerInvariant()
+                .Select(ch => char.IsLetterOrDigit(ch) ? ch : ' ')
+                .ToArray());
+
+            return cleaned
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Distinct()
+                .ToList();
+        }
+
         public async Task<PaginatedServiceResponse<List<ProductDto>>> GetProductsAsync(string? searchTerm, int pageNumber, int pageSize)
         {
             var response = new PaginatedServiceResponse<List<ProductDto>>();
@@ -78,6 +94,7 @@ namespace GaStore.Core.Services.Implementations
                 {
                     var normalizedSearchTerm = searchTerm.Trim().ToLower();
                     var firstPartBeforeDash = GetFirstStringBeforeDash(normalizedSearchTerm);
+                    var searchTokens = GetSearchTokens(normalizedSearchTerm);
 
                     var tagIds = await _context.Tags
                         .Where(t =>
@@ -99,7 +116,16 @@ namespace GaStore.Core.Services.Implementations
                         (p.SubCategory != null && p.SubCategory.Name.ToLower().Contains(normalizedSearchTerm)) ||
                         (p.ProductType != null && p.ProductType.Name.ToLower().Contains(normalizedSearchTerm)) ||
                         (p.ProductSubType != null && p.ProductSubType.Name.ToLower().Contains(normalizedSearchTerm)) ||
-                        (p.Description != null && p.Description.ToLower().Contains(normalizedSearchTerm))
+                        (p.Description != null && p.Description.ToLower().Contains(normalizedSearchTerm)) ||
+                        (searchTokens.Count > 0 &&
+                            (
+                                searchTokens.All(token => p.Name.ToLower().Contains(token)) ||
+                                (p.Category != null && searchTokens.All(token => p.Category.Name.ToLower().Contains(token))) ||
+                                (p.SubCategory != null && searchTokens.All(token => p.SubCategory.Name.ToLower().Contains(token))) ||
+                                (p.ProductType != null && searchTokens.All(token => p.ProductType.Name.ToLower().Contains(token))) ||
+                                (p.ProductSubType != null && searchTokens.All(token => p.ProductSubType.Name.ToLower().Contains(token))) ||
+                                (p.Description != null && searchTokens.All(token => p.Description.ToLower().Contains(token)))
+                            ))
                     );
                 }
 
