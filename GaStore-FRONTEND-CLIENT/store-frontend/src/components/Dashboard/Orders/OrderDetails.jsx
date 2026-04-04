@@ -164,7 +164,7 @@ const OrderDetails = ({ order, shipping, loading, error }) => {
   }
 
   return (
-    <div className="container mx-auto md:px-4 px-4 py-8 max-w-6xl">
+    <div className="max-w-6xl">
       {/* Order Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>

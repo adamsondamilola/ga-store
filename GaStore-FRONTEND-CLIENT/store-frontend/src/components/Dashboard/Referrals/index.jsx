@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import requestHandler from '@/utils/requestHandler';
 import endpointsPath from '@/constants/EndpointsPath';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PaginationAlt from '@/components/PaginationAlt';
 import formatNumberToCurrency from '@/utils/numberToMoney';
+import { DashboardPageShell, DashboardPanel, DashboardStatCard } from '../PageShell';
+import { FiRefreshCw, FiUsers, FiTrendingUp, FiActivity } from 'react-icons/fi';
 
 const ReferralsList = () => {
   const [referrals, setReferrals] = useState([]);
@@ -15,6 +16,7 @@ const ReferralsList = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [expandedRow, setExpandedRow] = useState(null); // For expandable commission details
   const [userId, setUserId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const limit = 10;
 
   useEffect(() => {
@@ -38,6 +40,7 @@ const ReferralsList = () => {
 
   const fetchReferrals = async (userId) => {
     setLoading(true);
+    setRefreshing(true);
     try {
       const params = new URLSearchParams({
         pageNumber: page,
@@ -62,6 +65,7 @@ const ReferralsList = () => {
       toast.error(error.message || 'Failed to load referrals');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -73,31 +77,29 @@ const ReferralsList = () => {
     }
   };
 
-  const getCommissionStatus = (commissionAmount, purchase) => {
-    if (commissionAmount > 0) return 'completed';
-    return 'pending';
-  };
-
   return (
-    <div className="container mx-auto md:px-4 px-4 py-8">
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Referral Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <div className="bg-blue-50 px-4 py-2 rounded-lg">
-              <p className="text-sm text-gray-600">Total Referrals</p>
-              <p className="text-xl font-bold text-blue-600">{totalRecords}</p>
-            </div>
-            <div className="bg-green-50 px-4 py-2 rounded-lg">
-              <p className="text-sm text-gray-600">Total Commission</p>
-              <p className="text-xl font-bold text-green-600">
-                {formatNumberToCurrency(
-                  referrals.reduce((total, referral) => total + referral.totalCommissionEarned, 0)
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
+    <DashboardPageShell
+      eyebrow="Referrals"
+      title="Referral Dashboard"
+      description="See who joined through you and how your commissions are performing."
+      actions={
+        <button
+          onClick={() => userId && fetchReferrals(userId)}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      }
+    >
+      <div className="grid gap-4 md:grid-cols-4">
+        <DashboardStatCard label="Referrals" value={totalRecords} note="Total joined" icon={FiUsers} tone="bg-[linear-gradient(135deg,#fff1e5,#fffaf5)] text-gray-950" />
+        <DashboardStatCard label="Earned" value={formatNumberToCurrency(referrals.reduce((total, referral) => total + referral.totalCommissionEarned, 0))} note="Total commission" icon={FiTrendingUp} tone="bg-white text-gray-950" />
+        <DashboardStatCard label="Active" value={referrals.filter(r => r.totalCommissionEarned > 0).length} note="Paying referrals" icon={FiActivity} tone="bg-white text-gray-950" />
+        <DashboardStatCard label="Purchases" value={referrals.reduce((sum, r) => sum + (r.purchasesDto?.length || 0), 0)} note="Tracked purchases" icon={FiTrendingUp} tone="bg-[linear-gradient(135deg,#f97316,#ea580c)] text-white" />
+      </div>
+
+      <DashboardPanel>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -112,9 +114,9 @@ const ReferralsList = () => {
             <p className="mt-1 text-sm text-gray-500">Start referring friends to earn commissions!</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-[24px] border border-[#efe6de]">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#fcfaf8]">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referral</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Joined</th>
@@ -127,7 +129,7 @@ const ReferralsList = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {referrals.map((referral) => (
                   <React.Fragment key={referral.referralId}>
-                    <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleRowExpansion(referral.referralId)}>
+                    <tr className="hover:bg-[#fffaf5] cursor-pointer" onClick={() => toggleRowExpansion(referral.referralId)}>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -147,7 +149,7 @@ const ReferralsList = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {new Date(referral.referralUserDto?.dateCreated).toLocaleDateString()}
+                          {new Date(referral.referralUserDto?.dateCreated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </div>
                         <div className="text-sm text-gray-500">
                           {new Date(referral.referralUserDto?.dateCreated).toLocaleTimeString()}
@@ -183,12 +185,12 @@ const ReferralsList = () => {
                     {/* Expanded Row - Commission Details */}
                     {expandedRow === referral.referralId && referral.purchasesDto && referral.purchasesDto.length > 0 && (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
-                          <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <td colSpan="6" className="px-6 py-4 bg-[#fffaf5]">
+                          <div className="bg-white rounded-2xl border border-[#efe6de] p-4">
                             <h4 className="font-medium text-gray-900 mb-3">Commission Details</h4>
                             <div className="overflow-x-auto">
                               <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-100">
+                                <thead className="bg-[#fcfaf8]">
                                   <tr>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">S/N</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
@@ -225,17 +227,17 @@ const ReferralsList = () => {
                             
                             {/* Summary Section */}
                             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="bg-blue-50 p-3 rounded-lg">
+                              <div className="bg-[#eff6ff] p-3 rounded-2xl">
                                 <p className="text-xs text-gray-600">Total Purchases</p>
                                 <p className="text-lg font-bold text-blue-600">{referral.purchasesDto.length}</p>
                               </div>
-                              <div className="bg-green-50 p-3 rounded-lg">
+                              <div className="bg-[#ecfdf3] p-3 rounded-2xl">
                                 <p className="text-xs text-gray-600">Total Commission Earned</p>
                                 <p className="text-lg font-bold text-green-600">
                                   {formatNumberToCurrency(referral.totalCommissionEarned)}
                                 </p>
                               </div>
-                              <div className="bg-purple-50 p-3 rounded-lg">
+                              <div className="bg-[#fff7ed] p-3 rounded-2xl">
                                 <p className="text-xs text-gray-600">Average Commission</p>
                                 <p className="text-lg font-bold text-purple-600">
                                   {formatNumberToCurrency(
@@ -254,7 +256,7 @@ const ReferralsList = () => {
                     {/* Expanded Row - No Purchases */}
                     {expandedRow === referral.referralId && (!referral.purchasesDto || referral.purchasesDto.length === 0) && (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                        <td colSpan="6" className="px-6 py-4 bg-[#fffaf5]">
                           <div className="text-center py-4 text-gray-500">
                             <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -271,7 +273,6 @@ const ReferralsList = () => {
           </div>
         )}
 
-        {/* Pagination */}
         {referrals.length > 0 && (
           <div className="mt-6">
             <PaginationAlt
@@ -283,42 +284,8 @@ const ReferralsList = () => {
             />
           </div>
         )}
-
-        {/* Summary Stats */}
-        {referrals.length > 0 && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-500">Total Active Referrals</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {referrals.filter(r => r.totalCommissionEarned > 0).length}
-              </div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-500">Pending Referrals</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {referrals.filter(r => r.totalCommissionEarned === 0).length}
-              </div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-500">Avg. Commission/Referral</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {formatNumberToCurrency(
-                  referrals.length > 0 
-                    ? referrals.reduce((sum, r) => sum + r.totalCommissionEarned, 0) / referrals.length 
-                    : 0
-                )}
-              </div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="text-sm text-gray-500">Total Purchase Count</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {referrals.reduce((sum, r) => sum + (r.purchasesDto?.length || 0), 0)}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </DashboardPanel>
+    </DashboardPageShell>
   );
 };
 

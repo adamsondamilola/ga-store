@@ -1,9 +1,12 @@
-"use client"
-import React, { useEffect, useState } from 'react';
-import requestHandler from '@/utils/requestHandler';
-import endpointsPath from '@/constants/EndpointsPath';
-import toast from 'react-hot-toast';
-import formatNumberToCurrency from '@/utils/numberToMoney';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { FiDollarSign, FiRefreshCw, FiTrendingDown, FiTrendingUp } from "react-icons/fi";
+import requestHandler from "@/utils/requestHandler";
+import endpointsPath from "@/constants/EndpointsPath";
+import toast from "react-hot-toast";
+import formatNumberToCurrency from "@/utils/numberToMoney";
+import { DashboardPageShell, DashboardPanel, DashboardStatCard } from "../PageShell";
 
 const Wallet = () => {
   const [loading, setLoading] = useState(true);
@@ -11,45 +14,51 @@ const Wallet = () => {
   const [wallet, setWallet] = useState({
     balance: 0,
     commission: 0,
-    withdrawn: 0
+    withdrawn: 0,
   });
   const [error, setError] = useState(null);
+
+  const fetchWallet = async (targetUserId, showToast = false) => {
+    if (!targetUserId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const walletResp = await requestHandler.get(`${endpointsPath.wallet}/${targetUserId}/user`, true);
+
+      if (walletResp.statusCode === 200 && walletResp.result?.data) {
+        setWallet({
+          balance: walletResp.result.data.balance || 0,
+          commission: walletResp.result.data.commission || 0,
+          withdrawn: walletResp.result.data.withdrawn || 0,
+        });
+
+        if (showToast) {
+          toast.success("Commission refreshed");
+        }
+      } else {
+        throw new Error(walletResp.result?.message || "Failed to fetch wallet data");
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
+      setError(err.message || "An unknown error occurred");
+      toast.error("Failed to load wallet data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch user ID first
         const userResp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user`, true);
-        if (userResp.statusCode !== 200 || !userResp.result.data[0]?.id) {
-          //throw new Error('Failed to fetch user data');
-        }
-        
-        const userId = userResp.result.data[0].userId;
-        setUserId(userId);
-
-        // Then fetch wallet data
-        const walletResp = await requestHandler.get(
-          `${endpointsPath.wallet}/${userId}/user`,
-          true
-        );
-
-        if (walletResp.statusCode === 200 && walletResp.result?.data) {
-          setWallet({
-            balance: walletResp.result.data.balance || 0,
-            commission: walletResp.result.data.commission || 0,
-            withdrawn: walletResp.result.data.withdrawn || 0
-          });
-        } else {
-          throw new Error(walletResp.result?.message || 'Failed to fetch wallet data');
-        }
+        const currentUserId = userResp?.result?.data?.[0]?.userId;
+        setUserId(currentUserId);
+        await fetchWallet(currentUserId);
       } catch (err) {
-        console.error('Fetch failed:', err);
-        setError(err.message || 'An unknown error occurred');
-        toast.error('Failed to load wallet data');
-      } finally {
+        console.error("Fetch failed:", err);
+        setError("Unable to load account information");
         setLoading(false);
       }
     };
@@ -57,109 +66,79 @@ const Wallet = () => {
     fetchData();
   }, []);
 
-  const InfoRow = ({ label, value }) => (
-    <div className="flex justify-between py-3 border-b last:border-b-0">
-      <span className="text-sm font-medium text-gray-500">{label}</span>
-      <span className="text-sm font-semibold text-gray-900">
-        {formatNumberToCurrency(value) || '0.00'}
-      </span>
-    </div>
-  );
-
-  const handleRefresh = async () => {
-    if (!userId) return;
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const walletResp = await requestHandler.get(
-        `${endpointsPath.wallet}/${userId}`,
-        true
-      );
-
-      if (walletResp.statusCode === 200 && walletResp.result?.data) {
-        setWallet({
-          balance: walletResp.result.data.balance || 0,
-          commission: walletResp.result.data.commission || 0,
-          withdrawn: walletResp.result.data.withdrawn || 0
-        });
-        toast.success('Wallet data refreshed');
-      } else {
-        throw new Error(walletResp.result?.message || 'Failed to refresh wallet data');
-      }
-    } catch (err) {
-      console.error('Refresh failed:', err);
-      setError(err.message || 'Failed to refresh');
-      toast.error('Failed to refresh wallet data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto md:px-4 px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Referral Commission</h1>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
-                <div className="h-6 bg-gray-200 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
-      <div className="container mx-auto md:px-4 px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Referral Commission</h1>
-          <p className="text-red-500 mb-4">{error}</p>
+      <DashboardPageShell
+        eyebrow="Commission"
+        title="Referral Commission"
+        description="Track available and used commission."
+      >
+        <DashboardPanel className="text-center">
+          <p className="text-red-500">{error}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={() => fetchWallet(userId)}
+            className="mt-4 rounded-2xl bg-gray-950 px-4 py-2 text-sm font-semibold text-white"
           >
             Try Again
           </button>
-        </div>
-      </div>
+        </DashboardPanel>
+      </DashboardPageShell>
     );
   }
 
   return (
-    <div className="container mx-auto md:px-4 px-4 py-8">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Referral Commission</h1>
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center px-3 py-1 bg-gray-900 text-white rounded hover:bg-gray-500 text-sm"
-          >
-            {loading ? (
-              <span className="animate-spin mr-2">↻</span>
-            ) : (
-              <span className="mr-2">↻</span>
-            )}
-            Refresh
-          </button>
-        </div>
-        
-        <div className="space-y-6">
-         {/* <h2 className="text-lg font-bold text-gray-800">Wallet Information</h2>*/}
-          <div className="space-y-3">
-            {/*<InfoRow label="Balance" value={wallet.balance} />*/}
-            <InfoRow label="Commission Available" value={wallet.commission} />
-            <InfoRow label="Commission Used" value={wallet.withdrawn} />
+    <DashboardPageShell
+      eyebrow="Commission"
+      title="Referral Commission"
+      description="A clean view of what you have earned and already used."
+      actions={
+        <button
+          onClick={() => fetchWallet(userId, true)}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+        >
+          <FiRefreshCw className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      }
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <DashboardStatCard
+          label="Available"
+          value={loading ? "..." : formatNumberToCurrency(wallet.commission)}
+          note="Ready now"
+          icon={FiDollarSign}
+          tone="bg-[linear-gradient(135deg,#fff1e5,#fffaf5)] text-gray-950"
+        />
+        <DashboardStatCard
+          label="Used"
+          value={loading ? "..." : formatNumberToCurrency(wallet.withdrawn)}
+          note="Already applied"
+          icon={FiTrendingDown}
+          tone="bg-white text-gray-950"
+        />
+        <DashboardStatCard
+          label="Total Flow"
+          value={loading ? "..." : formatNumberToCurrency((wallet.commission || 0) + (wallet.withdrawn || 0))}
+          note="Available plus used"
+          icon={FiTrendingUp}
+          tone="bg-[linear-gradient(135deg,#f97316,#ea580c)] text-white"
+        />
+      </div>
+
+      <DashboardPanel>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-[#efe6de] pb-3">
+            <span className="text-sm font-medium text-gray-500">Commission Available</span>
+            <span className="text-base font-semibold text-gray-950">{formatNumberToCurrency(wallet.commission)}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-[#efe6de] pb-3">
+            <span className="text-sm font-medium text-gray-500">Commission Used</span>
+            <span className="text-base font-semibold text-gray-950">{formatNumberToCurrency(wallet.withdrawn)}</span>
           </div>
         </div>
-      </div>
-    </div>
+      </DashboardPanel>
+    </DashboardPageShell>
   );
 };
 

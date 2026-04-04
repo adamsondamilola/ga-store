@@ -12,6 +12,7 @@ import AppStrings from '@/constants/Strings';
 import Spinner from '@/utils/spinner';
 import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
 import Link from 'next/link';
+import { DashboardPageShell, DashboardPanel } from '../PageShell';
 
 export default function Addresses() {
   const router = useRouter();
@@ -381,16 +382,15 @@ export default function Addresses() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      <div className="max-w-4xl mx-auto p-4 md:p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Delivery Addresses
-          </h1>
-        </div>
+    <DashboardPageShell
+      eyebrow="Addresses"
+      title="Delivery Addresses"
+      description="Manage your saved delivery locations and choose the right address faster."
+    >
+      <div className="max-w-4xl">
 
         {/* Main Address Card */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <DashboardPanel className="overflow-hidden p-0">
           {/* Header */}
           <div className="p-6 border-b border-gray-100">
             <div className="flex justify-between items-start">
@@ -565,7 +565,7 @@ export default function Addresses() {
               </div>
             </div>
           )*/}
-        </div>
+        </DashboardPanel>
 
         {/* Delivery Information Card */}
         {/*selectedAddress && !hideAddresses && (
@@ -599,8 +599,8 @@ export default function Addresses() {
           </div>
         )*/}
 
-        <Spinner loading={loading} />
       </div>
-    </div>
+      <Spinner loading={loading} />
+    </DashboardPageShell>
   );
 }

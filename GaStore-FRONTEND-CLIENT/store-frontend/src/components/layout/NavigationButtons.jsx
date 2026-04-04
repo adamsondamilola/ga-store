@@ -107,14 +107,14 @@ export default function NavigationButtons() {
     return (
       <button 
         onClick={() => toggleDropdown(name)}
-        className="flex items-center gap-1 hover:text-gray-900 transition-colors"
+        className="flex items-center gap-1 text-white hover:text-white/85 transition-colors"
         aria-expanded={activeDropdown === name}
         aria-haspopup="true"
         aria-controls={`${name}-dropdown`}
       >
-        <Icon className="text-xl text-gray-600 hover:text-gray-900 transition-colors" />
-        <span className="hidden md:inline text-lg">{label}</span>
-        <FiChevronDown className={`hidden md:block text-sm mt-0.5 opacity-70 transition-transform ${activeDropdown === name ? 'rotate-180' : ''}`} />
+        <Icon className="text-xl text-white transition-colors" />
+        <span className="hidden md:inline text-lg text-white">{label}</span>
+        <FiChevronDown className={`hidden md:block text-sm mt-0.5 text-white/80 transition-transform ${activeDropdown === name ? 'rotate-180' : ''}`} />
       </button>
     );
   };
@@ -265,16 +265,16 @@ export default function NavigationButtons() {
         <div className="relative">
           <button 
             onClick={() => setShowModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-all relative"
+            className="p-2 hover:bg-white/15 rounded-full transition-all relative text-white"
             aria-label={`Cart (${cartStats.count} items)`}
             aria-live="polite"
           >
             <FiShoppingCart 
-              className={`text-xl transition-colors ${cartStats.count > 0 ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+              className="text-xl text-white transition-colors"
             />
             {cartStats.count > 0 && (
               <span 
-                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center"
+                className="absolute -top-2 -right-2 bg-black text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center"
                 aria-hidden="true"
               >
                 {cartStats.count > 9 ? '9+' : cartStats.count}
@@ -290,7 +290,7 @@ export default function NavigationButtons() {
       {/* Cart Modal */}
       {showModal && (
         <div 
-          className="fixed inset-0 bg-black/50 flex justify-end z-50" 
+          className="fixed inset-0 bg-black/50 text-black flex justify-end z-50" 
           onClick={() => setShowModal(false)}
           role="dialog"
           aria-modal="true"

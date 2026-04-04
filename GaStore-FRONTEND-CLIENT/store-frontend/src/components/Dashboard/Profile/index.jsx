@@ -4,15 +4,14 @@ import requestHandler from '@/utils/requestHandler';
 import endpointsPath from '@/constants/EndpointsPath';
 import formatNumberToCurrency from '@/utils/numberToMoney';
 import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
-import { FiClipboard, FiGlobe, FiMapPin, FiPenTool, FiUser } from 'react-icons/fi';
-import { ArrowDownward, ArrowLeft, BuildOutlined, CalendarToday, Camera, CameraAlt, Cancel, Check, Email, Home, Link, LocationOn, MoneyTwoTone, Phone, PhoneAndroid, Scale, Share, SupervisedUserCircle } from '@mui/icons-material';
+import { FiClipboard, FiGlobe, FiMapPin, FiUser } from 'react-icons/fi';
+import { ArrowDownward, ArrowLeft, BuildOutlined, CalendarToday, CameraAlt, Cancel, Check, Email, Home, Link, LocationOn, Phone, PhoneAndroid, Scale, Share, SupervisedUserCircle } from '@mui/icons-material';
 import AppStrings from '@/constants/Strings';
 import nigeriaStates from '@/constants/NigeriaStates';
+import { DashboardPageShell, DashboardPanel } from '../PageShell';
 
 
 const UserProfileView = () => {
-  const navigate = useRouter();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -317,35 +316,27 @@ const UserProfileView = () => {
   }
 
   return (
-    <div className="container mx-auto md:px-4 px-4 py-8 max-w-7xl">
-      <div className="bg-white rounded-lg shadow-sm p-6">
+    <DashboardPageShell
+      eyebrow="Account"
+      title={editMode ? "Edit Profile" : "My Account"}
+      description="Manage your personal details, contact information, and referral link."
+      actions={
+        <button
+          onClick={() => setEditMode(!editMode)}
+          className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${
+            editMode 
+              ? 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50'
+              : 'bg-gray-950 text-white hover:bg-black'
+          }`}
+          aria-label={editMode ? 'Cancel editing' : 'Edit profile'}
+        >
+          {editMode ? 'Cancel' : 'Edit Profile'}
+        </button>
+      }
+    >
+      <DashboardPanel className="max-w-7xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              {editMode ? 'Edit Profile' : 'My Account'}
-            </h1>
-          </div>
-          <button
-            onClick={() => setEditMode(!editMode)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              editMode 
-                ? 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                : 'bg-brand text-white hover:bg-brand-dark'
-            }`}
-            aria-label={editMode ? 'Cancel editing' : 'Edit profile'}
-          >
-            {editMode ? (
-              <span className="flex items-center gap-2">
-                <Cancel className="h-4 w-4" />
-                Cancel
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <FiPenTool className="h-4 w-4" />
-                Edit Profile
-              </span>
-            )}
-          </button>
+          <div />
         </div>
 
         {editMode ? (
@@ -755,8 +746,8 @@ const UserProfileView = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DashboardPanel>
+    </DashboardPageShell>
   );
 };
 

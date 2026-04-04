@@ -192,10 +192,10 @@ const renderProductTypes = (productTypes, subCategory, mainCategory) => {
   return (
     <>
       {/* Navbar */}
-      <nav className="w-full bg-white border-b shadow-sm px-4 py-3 flex items-center justify-between relative z-50 text-gray-900">
+      <nav className="w-full bg-[#f97316] border-b shadow-sm px-4 py-3 flex items-center justify-between relative z-50 text-white">
         {/* Left: Logo & Menu */}
         <div className="flex items-center gap-4">
-          <button className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
+          <button className="lg:hidden text-white" onClick={() => setMobileMenuOpen(true)}>
             <FiMenu className="text-2xl" />
           </button>
           <Link href={'/'} className="text-2xl font-bold cursor-pointer">
@@ -226,7 +226,7 @@ const renderProductTypes = (productTypes, subCategory, mainCategory) => {
               }}
             >
               <button
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors duration-200"
+                className="flex items-center gap-2 px-4 py-2 bg-white/15 rounded-full hover:bg-white/25 transition-colors duration-200 text-white"
                 aria-expanded={categoryOpen}
                 aria-haspopup="true"
                 aria-label="Browse categories"
@@ -448,7 +448,7 @@ const renderProductTypes = (productTypes, subCategory, mainCategory) => {
         <div className="flex items-center gap-2">
           {/* Mobile Search Button */}
           <button 
-            className="sm:hidden p-2 hover:bg-gray-100 rounded-full"
+            className="sm:hidden p-2 hover:bg-white/15 rounded-full text-white"
             onClick={() => setMobileSearchOpen(true)}
           >
             <FiSearch className="text-xl" />

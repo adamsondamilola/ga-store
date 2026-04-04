@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import requestHandler from '@/utils/requestHandler';
 import endpointsPath from '@/constants/EndpointsPath';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import PaginationAlt from '@/components/PaginationAlt';
 import formatNumberToCurrency from '@/utils/numberToMoney';
+import { DashboardPageShell, DashboardPanel, DashboardStatCard } from '../PageShell';
+import { FiCheckCircle, FiClock, FiCreditCard, FiFilter, FiRefreshCw } from 'react-icons/fi';
 
 const TransactionsList = () => {
   const [transactions, setTransactions] = useState([]);
@@ -13,6 +14,7 @@ const TransactionsList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState({
     transactionType: '',
     status: '',
@@ -37,6 +39,7 @@ const TransactionsList = () => {
 
   const fetchTransactions = async () => {
     setLoading(true);
+    setRefreshing(true);
     try {
       const params = new URLSearchParams({
         pageNumber: page,
@@ -65,6 +68,7 @@ const TransactionsList = () => {
       toast.error(error.message || 'Failed to load transactions');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -122,19 +126,66 @@ const TransactionsList = () => {
   };
 
   return (
-    <div className="container mx-auto md:px-4 px-4 py-8">
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Transaction History</h1>
+    <DashboardPageShell
+      eyebrow="Payments"
+      title="Transaction History"
+      description="Review your payment activity, commission movements, and order transactions."
+      actions={
+        <button
+          onClick={fetchTransactions}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      }
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <DashboardStatCard
+          label="Records"
+          value={totalRecords}
+          note="Across current filters"
+          icon={FiCreditCard}
+          tone="bg-[linear-gradient(135deg,#fff1e5,#fffaf5)] text-gray-950"
+        />
+        <DashboardStatCard
+          label="Completed"
+          value={transactions.filter((x) => x.status?.toLowerCase() === "completed").length}
+          note="Successful transactions"
+          icon={FiCheckCircle}
+          tone="bg-white text-gray-950"
+        />
+        <DashboardStatCard
+          label="Pending"
+          value={transactions.filter((x) => x.status?.toLowerCase() === "pending").length}
+          note="Awaiting settlement"
+          icon={FiClock}
+          tone="bg-[linear-gradient(135deg,#f97316,#ea580c)] text-white"
+        />
+      </div>
+
+      <DashboardPanel>
+        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
+              Filters
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-gray-950">Narrow your activity</h2>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#fff6ef] px-4 py-2 text-sm font-medium text-[#c2410c]">
+            <FiFilter />
+            Filter transactions
+          </div>
+        </div>
         
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-5 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
             <select
               name="transactionType"
               value={filters.transactionType}
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-2xl border border-[#e8ded6] bg-[#fcfaf8] px-3 py-3 focus:outline-none"
             >
               <option value="">All Types</option>
               <option value="Purchase">Purchase</option>
@@ -152,7 +203,7 @@ const TransactionsList = () => {
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-2xl border border-[#e8ded6] bg-[#fcfaf8] px-3 py-3 focus:outline-none"
             >
               <option value="">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -169,7 +220,7 @@ const TransactionsList = () => {
               name="startDate"
               value={filters.startDate}
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-2xl border border-[#e8ded6] bg-[#fcfaf8] px-3 py-3 focus:outline-none"
             />
           </div>
           
@@ -180,29 +231,26 @@ const TransactionsList = () => {
               name="endDate"
               value={filters.endDate}
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-2xl border border-[#e8ded6] bg-[#fcfaf8] px-3 py-3 focus:outline-none"
             />
           </div>
 
           <div className="flex justify-end space-x-3">
           <button
             onClick={resetFilters}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             Reset Filters
           </button>
           <button
             onClick={applyFilters}
-            className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium hover:bg-primary-dark"
+            className="px-4 py-2 bg-gray-950 text-white rounded-2xl text-sm font-medium hover:bg-black"
           >
             Apply Filters
           </button>
         </div>
         </div>
-        
-        
 
-        {/* Transactions Table */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -212,9 +260,9 @@ const TransactionsList = () => {
             No transactions found
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-[24px] border border-[#efe6de]">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#fcfaf8]">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction ID</th>
                   {/*<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>*/}
@@ -227,7 +275,7 @@ const TransactionsList = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {transactions.map((transaction) => (
-                  <tr key={transaction.transactionId} className="hover:bg-gray-50">
+                  <tr key={transaction.transactionId} className="hover:bg-[#fffaf5]">
                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
   {transaction.transactionId ? 
     (typeof transaction.transactionId === 'string' ? 
@@ -260,7 +308,7 @@ const TransactionsList = () => {
                       {statusBadge(transaction.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(transaction.dateCreated).toLocaleDateString()}
+                      {new Date(transaction.dateCreated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </td>
                     {/*<td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                       {transaction.description}
@@ -275,7 +323,6 @@ const TransactionsList = () => {
           </div>
         )}
 
-        {/* Pagination */}
         {transactions.length > 0 && (
           <div className="mt-6">
             <PaginationAlt
@@ -287,8 +334,8 @@ const TransactionsList = () => {
             />
           </div>
         )}
-      </div>
-    </div>
+      </DashboardPanel>
+    </DashboardPageShell>
   );
 };
 

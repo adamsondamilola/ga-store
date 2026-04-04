@@ -1,141 +1,146 @@
 "use client";
+
 import React from "react";
 import Link from "next/link";
 import dateTimeToWord from "@/utils/dateTimeToWord";
 import formatNumberToCurrency from "@/utils/numberToMoney";
-import StatusComponent from "@/components/Status";
 import Spinner from "@/utils/spinner";
+import { FiArrowRight, FiBox, FiCheckCircle, FiClock, FiCreditCard, FiTruck } from "react-icons/fi";
+
+const PaymentBadge = ({ paid }) => (
+  <span
+    className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+      paid ? "bg-[#ecfdf3] text-[#166534]" : "bg-[#fff7ed] text-[#c2410c]"
+    }`}
+  >
+    {paid ? <FiCheckCircle className="text-sm" /> : <FiClock className="text-sm" />}
+    {paid ? "Paid" : "Pending"}
+  </span>
+);
+
+const DeliveryBadge = ({ status }) => {
+  const normalized = status || "Pending";
+  const delivered = normalized.toLowerCase() === "delivered";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+        delivered ? "bg-[#ecfdf3] text-[#166534]" : "bg-[#eff6ff] text-[#1d4ed8]"
+      }`}
+    >
+      <FiTruck className="text-sm" />
+      {normalized}
+    </span>
+  );
+};
+
+const SummaryCell = ({ label, value, emphasis = false }) => (
+  <div className="rounded-2xl bg-[#fcfaf8] p-4">
+    <div className="text-xs uppercase tracking-[0.22em] text-gray-400">{label}</div>
+    <div className={`mt-2 text-sm ${emphasis ? "font-semibold text-gray-950" : "font-medium text-gray-700"}`}>
+      {value}
+    </div>
+  </div>
+);
 
 const OrderList = ({ loading, orders }) => {
   if (loading) return <Spinner loading={loading} />;
 
-  if (!orders?.length)
+  if (!orders?.length) {
     return (
-      <div className="col-span-full text-center py-10">
-        <div className="text-gray-500 dark:text-gray-400">
-          <svg
-            className="mx-auto h-12 w-12"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-          <h3 className="mt-2 text-lg font-medium">No orders found</h3>
-          <p className="mt-1">You haven’t placed any orders yet.</p>
+      <div className="py-14 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#fff4ec] text-[#ea580c]">
+          <FiBox className="text-xl" />
         </div>
+        <h3 className="mt-4 text-lg font-semibold text-gray-900">No orders found</h3>
+        <p className="mt-2 text-sm text-gray-500">Try another filter or place your next order.</p>
       </div>
     );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
       {orders.map((order) => {
         const totalItems =
-          order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
-        const hasDiscount = order.discountPercentage > 0;
+          order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
+        const hasDiscount = Number(order.discountPercentage || 0) > 0;
+        const displayAmount = order.amountAfterDiscount || order.amount || 0;
 
         return (
           <div
             key={order.id}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-300"
+            className="overflow-hidden rounded-[28px] border border-[#ece4db] bg-white shadow-[0_16px_44px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_56px_rgba(15,23,42,0.10)]"
           >
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {dateTimeToWord(order?.dateCreated)}
-                </span>
-                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  {totalItems} {totalItems === 1 ? "item" : "items"}
-                </span>
-              </div>
-              <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
-                Order #{order.id.substring(0, 8).toUpperCase()}
-              </h3>
-            </div>
-
-            {/* Body */}
-            <div className="p-4">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="border-b border-[#f1e7de] bg-[linear-gradient(180deg,#fffdfa,#fff7f1)] p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Total Amount
-                  </p>
-                  {hasDiscount ? (
-                    <div className="flex flex-col">
-                      <span className="text-gray-500 line-through text-xs">
-                        {formatNumberToCurrency(order.amount || order.subTotal)}
-                      </span>
-                      <span className="font-semibold text-green-700">
-                        {formatNumberToCurrency(
-                          order.amountAfterDiscount || order.amount
-                        )}
-                      </span>
-                      {order.couponCode && (
-                        <span className="text-xs text-blue-600 mt-1 font-medium">
-                          {order.couponCode} ({order.discountPercentage}%)
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {formatNumberToCurrency(order.amount)}
-                    </p>
-                  )}
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[#c2410c]">
+                    {dateTimeToWord(order?.dateCreated)}
+                  </div>
+                  <h3 className="mt-2 text-xl font-semibold text-gray-950">
+                    Order #{String(order.id).slice(0, 8).toUpperCase()}
+                  </h3>
                 </div>
 
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Total Quantity
-                  </p>
-                  <p className="font-medium text-gray-900 dark:text-white">
-                    {totalItems}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Payment
-                  </p>
-                  <StatusComponent status={order.hasPaid} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Delivery
-                  </p>
-                  <StatusComponent status={order?.shipping?.status} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <PaymentBadge paid={order.hasPaid} />
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-[#efe2d7]">
+                    <FiBox className="text-sm text-[#c2410c]" />
+                    {totalItems} {totalItems === 1 ? "item" : "items"}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+            <div className="p-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <SummaryCell
+                  label="Amount"
+                  value={
+                    hasDiscount ? (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-400 line-through">
+                          {formatNumberToCurrency(order.amount || order.subTotal || 0)}
+                        </div>
+                        <div className="text-base font-semibold text-gray-950">
+                          {formatNumberToCurrency(displayAmount)}
+                        </div>
+                        {order.couponCode ? (
+                          <div className="text-xs font-medium text-[#c2410c]">
+                            {order.couponCode} ({order.discountPercentage}% off)
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      formatNumberToCurrency(displayAmount)
+                    )
+                  }
+                  emphasis
+                />
+
+                <SummaryCell label="Quantity" value={`${totalItems} item${totalItems === 1 ? "" : "s"}`} />
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[#fcfaf8] p-4">
+                  <div className="mb-2 text-xs uppercase tracking-[0.22em] text-gray-400">Payment</div>
+                  <PaymentBadge paid={order.hasPaid} />
+                </div>
+
+                <div className="rounded-2xl bg-[#fcfaf8] p-4">
+                  <div className="mb-2 text-xs uppercase tracking-[0.22em] text-gray-400">Delivery</div>
+                  <DeliveryBadge status={order?.shipping?.status} />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#f1e7de] bg-[#fffdfa] p-5">
               <Link
                 href={`/customer/orders/${order.id}`}
-                className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-300"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gray-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-black"
               >
                 View Details
-                <svg
-                  className="w-4 h-4 ml-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                <FiArrowRight className="text-sm" />
               </Link>
             </div>
           </div>

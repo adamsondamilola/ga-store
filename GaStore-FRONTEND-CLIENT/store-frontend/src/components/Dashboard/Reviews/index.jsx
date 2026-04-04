@@ -1,109 +1,86 @@
-"use client"
-import endpointsPath from '@/constants/EndpointsPath';
-import AppStrings from '@/constants/Strings';
-import requestHandler from '@/utils/requestHandler';
-import { stringToSLug } from '@/utils/stringToSlug';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import { FiStar, FiUser, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+"use client";
+
+import endpointsPath from "@/constants/EndpointsPath";
+import requestHandler from "@/utils/requestHandler";
+import { stringToSLug } from "@/utils/stringToSlug";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { FiChevronLeft, FiChevronRight, FiExternalLink, FiMessageSquare, FiStar, FiUser } from "react-icons/fi";
+import { DashboardPageShell, DashboardPanel, DashboardStatCard } from "../PageShell";
 
 const ReviewsByUser = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Number of reviews per page
-
+  const [itemsPerPage] = useState(6);
   const [userId, setUserId] = useState(null);
-  useEffect(() => {
-      const loggedInUser =  async () => { 
-        const resp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user`, true);
-        if(resp.statusCode === 200){
-          setUserId(resp.result.data[0]?.userId);
-        }
-        else {
-            
-        }
-    }
-    loggedInUser();
-    },[]);
 
-    useEffect(() => {
+  useEffect(() => {
+    const loggedInUser = async () => {
+      const resp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user`, true);
+      if (resp.statusCode === 200) {
+        setUserId(resp.result.data[0]?.userId);
+      }
+    };
+    loggedInUser();
+  }, []);
+
+  useEffect(() => {
     if (!userId) return;
     async function fetchProductReviews() {
       try {
         setLoading(true);
-        
-        const response = await requestHandler.getServerSide(
-          `${endpointsPath.productReview}?userId=${userId}`, 
-          true
-        );
+        const response = await requestHandler.getServerSide(`${endpointsPath.productReview}?userId=${userId}`, true);
         if (response?.statusCode <= 201) {
-          setReviews(response.result.data);
-        } else {
-
+          setReviews(response.result.data || []);
         }
-      } catch (err) {
-        setLoading(false);
-//        console.error('Product fetch error:', err);
-  //      setError('An error occurred while loading the product');
       } finally {
         setLoading(false);
       }
     }
     fetchProductReviews();
   }, [userId]);
-  
 
   useEffect(() => {
-    const loggedInUser = async () => { 
+    const loggedInUser = async () => {
       const resp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user-details`, true);
-      if(resp.statusCode === 200){
-        setIsLoggedIn(true);
+      if (resp.statusCode === 200) {
         setName(`${resp.result.data.firstName} ${resp.result.data.lastName}`);
       }
-      else {
-        localStorage.setItem("redirect_url", `/customer/reviews`);
-      }
-    }
+    };
     loggedInUser();
   }, []);
 
-  // Pagination logic
   const indexOfLastReview = currentPage * itemsPerPage;
   const indexOfFirstReview = indexOfLastReview - itemsPerPage;
   const currentReviews = reviews?.slice(indexOfFirstReview, indexOfLastReview);
   const totalPages = Math.ceil(reviews?.length / itemsPerPage);
+  const averageRating = useMemo(() => {
+    if (!reviews.length) return 0;
+    return (reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length).toFixed(1);
+  }, [reviews]);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  // Pagination component
   const Pagination = () => {
     const pageNumbers = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pageNumbers.push(i);
-    }
-
-      if (loading) return <Spinner loading={loading} />;
+    for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
 
     return (
-      <div className="flex justify-center items-center mt-5">
+      <div className="flex justify-center items-center mt-6">
         <button
-          onClick={() => paginate(Math.max(1, currentPage - 1))}
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className={`p-2 rounded-full ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+          className={`p-2 rounded-full ${currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-gray-100"}`}
         >
           <FiChevronLeft size={20} />
         </button>
 
         <div className="flex mx-2">
-          {pageNumbers.map(number => (
+          {pageNumbers.map((number) => (
             <button
               key={number}
-              onClick={() => paginate(number)}
-              className={`w-10 h-10 mx-1 rounded-full ${currentPage === number ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+              onClick={() => setCurrentPage(number)}
+              className={`w-10 h-10 mx-1 rounded-full ${currentPage === number ? "bg-gray-950 text-white" : "text-gray-700 hover:bg-gray-100"}`}
             >
               {number}
             </button>
@@ -111,9 +88,9 @@ const ReviewsByUser = () => {
         </div>
 
         <button
-          onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className={`p-2 rounded-full ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+          className={`p-2 rounded-full ${currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "text-gray-700 hover:bg-gray-100"}`}
         >
           <FiChevronRight size={20} />
         </button>
@@ -122,54 +99,73 @@ const ReviewsByUser = () => {
   };
 
   return (
-    <div className="mt-5 pt-8 p-5 rounded-lg">
-      <h2 className="text-2xl font-bold mb-6">Reviews</h2>
-      {/* Reviews List */}
-      <div className="space-y-8">
-        {currentReviews?.length === 0 ? (
-          <p className="text-gray-500">No reviews yet.</p>
-        ) : (
-          currentReviews?.map((review) => (
-            <div key={review.id} className="border-b border-gray-300 pb-6">
-              <div className="flex items-center mb-2">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                  <FiUser className="text-gray-600" />
-                </div>
-                <div>
-                  <h4 className="font-medium">{`${review?.user?.firstName || name} ${review?.user?.lastName || ''}`  || 'New Comment'}</h4>
-                  <div className="flex items-center">
-                    <div className="flex mr-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FiStar
-                          key={star}
-                          className={`w-4 h-4 ${star <= review?.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {new Date(review?.date || review?.dateCreated).toLocaleDateString()}
-                    </span>
-                    {/*<Link href={`/product/${stringToSLug(review?.product?.name)}?id=${review?.product?.id}`} className='ml-2 text-sm text-blue-500'>
-                      View Product
-                    </Link>*/}
-                  </div>
-                  <div className='flex w-full justify-between'><div className='font-bold'>{review?.product?.name}</div>
-                  <Link href={`/product/${stringToSLug(review?.product?.name)}?id=${review?.product?.id}`} className='ml-2 text-sm text-blue-500'>
-                      View Product
-                    </Link>
-                  </div>
-                </div>
-              </div>
-              <h5 className="font-semibold text-lg mb-1">{review.title}</h5>
-              <p className="text-gray-700 whitespace-pre-line">{review.comment}</p>
-            </div>
-          ))
-        )}
+    <DashboardPageShell
+      eyebrow="Reviews"
+      title="Your Reviews"
+      description="All product feedback you have shared, in one place."
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <DashboardStatCard label="Reviews" value={reviews.length} note="Published feedback" icon={FiMessageSquare} tone="bg-[linear-gradient(135deg,#fff1e5,#fffaf5)] text-gray-950" />
+        <DashboardStatCard label="Average Rating" value={averageRating} note="Across all reviews" icon={FiStar} tone="bg-white text-gray-950" />
+        <DashboardStatCard label="Visible Page" value={currentReviews.length} note="Reviews on this page" icon={FiUser} tone="bg-[linear-gradient(135deg,#f97316,#ea580c)] text-white" />
       </div>
 
-      {/* Pagination */}
-      {reviews.length > itemsPerPage && <Pagination />}
-    </div>
+      <DashboardPanel>
+        {loading ? (
+          <div className="flex h-48 items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-[#ea580c]"></div>
+          </div>
+        ) : currentReviews?.length === 0 ? (
+          <div className="py-12 text-center text-gray-500">No reviews yet.</div>
+        ) : (
+          <div className="space-y-4">
+            {currentReviews.map((review) => (
+              <div key={review.id} className="rounded-[26px] border border-[#ece4db] bg-[#fffdfa] p-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#f4ede7] text-gray-600">
+                      <FiUser />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-950">{`${review?.user?.firstName || name || ""} ${review?.user?.lastName || ""}`.trim() || "Review"}</h4>
+                      <div className="mt-1 flex items-center gap-3">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FiStar
+                              key={star}
+                              className={`w-4 h-4 ${star <= review?.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(review?.date || review?.dateCreated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/product/${stringToSLug(review?.product?.name)}?id=${review?.product?.id}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#eadfd6] bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-[#fff7f1]"
+                  >
+                    View Product
+                    <FiExternalLink className="text-sm" />
+                  </Link>
+                </div>
+
+                <div className="mt-4">
+                  <div className="font-semibold text-gray-950">{review.title}</div>
+                  <div className="mt-1 text-sm font-medium text-[#c2410c]">{review?.product?.name}</div>
+                  <p className="mt-3 whitespace-pre-line text-gray-700">{review.comment}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {reviews.length > itemsPerPage && <Pagination />}
+      </DashboardPanel>
+    </DashboardPageShell>
   );
 };
 
