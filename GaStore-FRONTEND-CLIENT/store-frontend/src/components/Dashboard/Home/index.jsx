@@ -22,28 +22,28 @@ import toast from "react-hot-toast";
 const quickLinks = [
   {
     title: "Orders",
-    description: "Track purchases and open delivery updates.",
+    description: "Track purchases and delivery status.",
     href: "/customer/orders",
     icon: FiPackage,
     accent: "from-[#ffedd5] to-[#fff7ed]",
   },
   {
     title: "Addresses",
-    description: "Manage saved delivery points and pickup preferences.",
+    description: "Manage saved delivery locations.",
     href: "/customer/addresses",
     icon: FiMapPin,
     accent: "from-[#ecfccb] to-[#f7fee7]",
   },
   {
     title: "Transactions",
-    description: "Review payment history and activity at a glance.",
+    description: "Review payments and activity.",
     href: "/customer/transactions",
     icon: FiCreditCard,
     accent: "from-[#dbeafe] to-[#eff6ff]",
   },
   {
     title: "Profile",
-    description: "Update account details, contact info, and settings.",
+    description: "Update your account details.",
     href: "/customer/profile",
     icon: FiUser,
     accent: "from-[#fae8ff] to-[#fdf4ff]",
@@ -129,14 +129,16 @@ export default function CustomerDashboardHome() {
     () => orders.filter((order) => !order.hasPaid).length,
     [orders]
   );
-  const totalSpent = useMemo(
-    () => orders.reduce((sum, order) => sum + Number(order.amountAfterDiscount || order.amount || 0), 0),
-    [orders]
-  );
   const totalReferralCommission = useMemo(
     () => referrals.reduce((sum, referral) => sum + Number(referral.totalCommissionEarned || 0), 0),
     [referrals]
   );
+  const formatOrderDate = (value) =>
+    new Date(value).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
   const heroStats = [
     {
@@ -161,27 +163,21 @@ export default function CustomerDashboardHome() {
 
   const metricCards = [
     {
-      title: "Total Spend",
-      value: formatNumberToCurrency(totalSpent),
-      note: "Based on your recent orders",
-      icon: FiCreditCard,
-    },
-    {
       title: "Saved Commission",
       value: formatNumberToCurrency(wallet?.commission || 0),
-      note: "Available to use or withdraw later",
+      note: "Available now",
       icon: FiGift,
     },
     {
       title: "Commission Used",
       value: formatNumberToCurrency(wallet?.withdrawn || 0),
-      note: "Already applied or withdrawn",
+      note: "Already applied",
       icon: FiRefreshCw,
     },
     {
       title: "Referrals",
       value: referrals.length,
-      note: "People connected through your invite",
+      note: "Connected accounts",
       icon: FiUsers,
     },
   ];
@@ -210,8 +206,11 @@ export default function CustomerDashboardHome() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#c2410c]">
               Customer Dashboard
             </p>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-600 md:text-base">
-              We brought your orders, delivery details, profile, and referral progress into a calmer, more useful overview so the next action always feels obvious.
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950 md:text-[2.5rem]">
+              Welcome back, {firstName}
+            </h1>
+            <p className="mt-3 text-sm text-gray-600 md:text-base">
+              Your orders, referrals, and account details in one place.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -305,7 +304,7 @@ export default function CustomerDashboardHome() {
                       Order #{String(order.id).slice(0, 8).toUpperCase()}
                     </div>
                     <div className="mt-1 text-sm text-gray-500">
-                      {new Date(order.orderDate || order.dateCreated).toLocaleDateString()} • {order.items?.length || 0} item(s)
+                      {formatOrderDate(order.orderDate || order.dateCreated)} • {order.items?.length || 0} item(s)
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -334,7 +333,7 @@ export default function CustomerDashboardHome() {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">No orders yet</h3>
                 <p className="mt-2 text-sm text-gray-500">
-                  Once you place an order, your recent activity will show up here.
+                  Your recent activity will appear here.
                 </p>
                 <Link
                   href="/"
@@ -386,7 +385,7 @@ export default function CustomerDashboardHome() {
               <FiStar className="text-xl text-[#f97316]" />
             </div>
             <div className="mt-5 rounded-[24px] bg-[#fff7f1] p-4">
-              <div className="text-sm text-gray-500">Current referral link performance</div>
+              <div className="text-sm text-gray-500">Referral performance</div>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl bg-white p-4">
                   <div className="text-xs uppercase tracking-wide text-gray-400">Referrals</div>
