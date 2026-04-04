@@ -407,12 +407,13 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseCors("policy");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Audit middleware
 app.UseMiddleware<AuditLoggingMiddleware>();
-
-app.UseCors("policy");
 
 app.MapControllers().RequireRateLimiting("FixedPolicy");
 

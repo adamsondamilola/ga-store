@@ -79,7 +79,7 @@ const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const brandsRes = await requestHandler.get(endpointsPath.brand, true);
+        const brandsRes = await requestHandler.get(`${endpointsPath.brand}?pageNumber=1&pageSize=100`, true);
         if (brandsRes.statusCode === 200) setBrands(brandsRes.result.data);
       } catch (err) {
         toast.error('Failed to load brands');

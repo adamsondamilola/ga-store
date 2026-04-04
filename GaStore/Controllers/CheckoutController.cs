@@ -51,7 +51,7 @@ namespace GaStore.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [Authorize(Roles = CustomRoles.User)]
+        [Authorize(Roles = CustomRoles.User)] 
         [HttpPost("payment-transaction/{transactionId}")]
         [EnableRateLimiting("PaymentPolicy")]
         public async Task<ActionResult<ServiceResponse<bool>>> VerifyTransactionAsync([FromBody] OrderSummaryDto summaryDto, [FromQuery] Guid orderId, string transactionId)

@@ -43,6 +43,26 @@ const createHeadersFormData = (bearer) => {
   return headers;
 };
 
+const getBaseUrl = () => {
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL_DEV;
+  if (process.env.NODE_ENV !== "development") {
+    baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  }
+  return baseUrl;
+};
+
+const getLocalHttpFallbackUrl = (baseUrl) => {
+  if (!baseUrl || process.env.NODE_ENV !== "development") {
+    return null;
+  }
+
+  if (baseUrl.startsWith("https://localhost:7059")) {
+    return baseUrl.replace("https://localhost:7059", "http://localhost:5036");
+  }
+
+  return null;
+};
+
 /*
 const fetchData = async (url, options) => {
   try {
@@ -73,23 +93,80 @@ const fetchData = async (url, options) => {
 };
 */
  const fetchData = async (url, options) => {
+  const baseUrl = getBaseUrl();
+
   try {
-    let baseUrl = process.env.NEXT_PUBLIC_API_URL_DEV;
-    if (process.env.NODE_ENV !== "development") {
-      baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    }
     const response = await fetch(baseUrl + url, options);
-    const result = await response.json();
-    const statusCode = response.status < 300? 200 : response.status;
-    const success = response.status < 300? true : false;
+    const rawText = await response.text();
+    let result = null;
 
-    //console.log('Success:', result);
+    if (rawText) {
+      try {
+        result = JSON.parse(rawText);
+      } catch (parseError) {
+        console.log('Response parse error:', parseError, rawText);
+        result = {
+          message: rawText,
+        };
+      }
+    }
 
-    return { result, statusCode, success };
+    const normalizedStatusCode =
+      result?.statusCode ??
+      result?.status ??
+      response.status;
+
+    return {
+      result,
+      statusCode: normalizedStatusCode,
+      httpStatusCode: response.status,
+      success: response.ok && normalizedStatusCode < 300,
+    };
   } catch (error) {
-    //toast.error(Strings.internalServerError)
+    const fallbackBaseUrl = getLocalHttpFallbackUrl(baseUrl);
+
+    if (fallbackBaseUrl) {
+      try {
+        const fallbackResponse = await fetch(fallbackBaseUrl + url, options);
+        const fallbackRawText = await fallbackResponse.text();
+        let fallbackResult = null;
+
+        if (fallbackRawText) {
+          try {
+            fallbackResult = JSON.parse(fallbackRawText);
+          } catch (parseError) {
+            console.log('Fallback response parse error:', parseError, fallbackRawText);
+            fallbackResult = {
+              message: fallbackRawText,
+            };
+          }
+        }
+
+        const normalizedStatusCode =
+          fallbackResult?.statusCode ??
+          fallbackResult?.status ??
+          fallbackResponse.status;
+
+        return {
+          result: fallbackResult,
+          statusCode: normalizedStatusCode,
+          httpStatusCode: fallbackResponse.status,
+          success: fallbackResponse.ok && normalizedStatusCode < 300,
+        };
+      } catch (fallbackError) {
+        console.log('Fallback fetch error:', fallbackError);
+      }
+    }
+
     console.log('Fetch error:', error);
-    return { result: null, statusCode: 500, success: false }; // Return a standard error response
+    return {
+      result: {
+        message: error?.message || 'Request failed',
+      },
+      statusCode: 500,
+      httpStatusCode: 500,
+      success: false,
+    };
   }
 }; 
 

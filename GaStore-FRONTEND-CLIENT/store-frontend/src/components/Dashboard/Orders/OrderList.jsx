@@ -64,7 +64,7 @@ const OrderList = ({ loading, orders }) => {
         const totalItems =
           order.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
         const hasDiscount = Number(order.discountPercentage || 0) > 0;
-        const displayAmount = order.amountAfterDiscount || order.amount || 0;
+        const displayAmount = !order?.couponCode? order.amount?.toFixed(2) : (order.amountAfterDiscount || 0);
 
         return (
           <div

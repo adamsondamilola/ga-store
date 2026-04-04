@@ -128,6 +128,114 @@ namespace GaStore.Core.Services.Implementations
 			return response;
 		}
 
+		public async Task<PaginatedServiceResponse<List<ReviewableProductDto>>> GetReviewableProductsAsync(Guid userId, int pageNumber, int pageSize)
+		{
+			var response = new PaginatedServiceResponse<List<ReviewableProductDto>>();
+
+			try
+			{
+				if (pageNumber < 1 || pageSize < 1)
+				{
+					response.Status = 400;
+					response.Message = "Page number and page size must be greater than 0.";
+					return response;
+				}
+
+				var completedPurchases = await _context.OrderItems
+					.AsNoTracking()
+					.Where(oi =>
+						oi.UserId == userId &&
+						oi.ProductId.HasValue &&
+						oi.Order != null &&
+						oi.Order.HasPaid &&
+						oi.Order.Shipping != null &&
+						(oi.Order.Shipping.Status == "Delivered" || oi.Order.Shipping.Status == "Completed"))
+					.Select(oi => new
+					{
+						ProductId = oi.ProductId!.Value,
+						ProductName = oi.Product != null ? oi.Product.Name : null,
+						ProductImageUrl = oi.Product != null
+							? oi.Product.Images!
+								.OrderBy(img => img.DisplayOrder)
+								.Select(img => img.ImageUrl)
+								.FirstOrDefault()
+							: null,
+						OrderId = oi.OrderId,
+						CompletedOn = oi.Order!.Shipping!.DateUpdated,
+						ShippingStatus = oi.Order.Shipping.Status,
+						OrderDate = oi.Order.OrderDate
+					})
+					.ToListAsync();
+
+				var latestCompletedProducts = completedPurchases
+					.GroupBy(item => item.ProductId)
+					.Select(group => group
+						.OrderByDescending(item => item.CompletedOn == default ? item.OrderDate : item.CompletedOn)
+						.First())
+					.OrderByDescending(item => item.CompletedOn == default ? item.OrderDate : item.CompletedOn)
+					.ToList();
+
+				var productIds = latestCompletedProducts.Select(item => item.ProductId).ToList();
+
+				var existingReviews = await _context.ProductReviews
+					.AsNoTracking()
+					.Where(r => r.UserId == userId && productIds.Contains(r.ProductId))
+					.OrderByDescending(r => r.DateCreated)
+					.ToListAsync();
+
+				var reviewsByProductId = existingReviews
+					.GroupBy(r => r.ProductId)
+					.ToDictionary(group => group.Key, group => group.First());
+
+				var totalRecords = latestCompletedProducts.Count;
+				var pagedProducts = latestCompletedProducts
+					.Skip((pageNumber - 1) * pageSize)
+					.Take(pageSize)
+					.Select(item =>
+					{
+						reviewsByProductId.TryGetValue(item.ProductId, out var review);
+						return new ReviewableProductDto
+						{
+							ProductId = item.ProductId,
+							OrderId = item.OrderId,
+							ProductName = item.ProductName,
+							ProductImageUrl = item.ProductImageUrl,
+							CompletedOn = item.CompletedOn == default ? item.OrderDate : item.CompletedOn,
+							ShippingStatus = item.ShippingStatus,
+							HasReview = review != null,
+							Review = review == null
+								? null
+								: new ProductReviewDto
+								{
+									Id = review.Id,
+									ProductId = review.ProductId,
+									UserId = review.UserId,
+									Rating = review.Rating,
+									Title = review.Title,
+									Comment = review.Comment,
+									DateCreated = review.DateCreated
+								}
+						};
+					})
+					.ToList();
+
+				response.Status = 200;
+				response.Message = "Reviewable products retrieved successfully.";
+				response.Data = pagedProducts;
+				response.PageNumber = pageNumber;
+				response.PageSize = pageSize;
+				response.TotalRecords = totalRecords;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error fetching reviewable products for user {UserId}", userId);
+				response.Status = 500;
+				response.Message = "An error occurred while retrieving reviewable products.";
+			}
+
+			return response;
+		}
+
 		public async Task<ServiceResponse<ProductReviewDto>> CreateAsync(Guid userId, ProductReviewDto dto)
 		{
 			var response = new ServiceResponse<ProductReviewDto>();
@@ -145,12 +253,31 @@ namespace GaStore.Core.Services.Implementations
 					DateCreated = DateTime.UtcNow
 				};
 
-				//check if user has purchased goods
-				var order = await _unitOfWork.OrderItemRepository.Get(x => x.ProductId == dto.ProductId && x.UserId == userId); 
-				if(order == null)
+				var hasCompletedPurchase = await _context.OrderItems
+					.AsNoTracking()
+					.AnyAsync(oi =>
+						oi.UserId == userId &&
+						oi.ProductId == dto.ProductId &&
+						oi.Order != null &&
+						oi.Order.HasPaid &&
+						oi.Order.Shipping != null &&
+						(oi.Order.Shipping.Status == "Delivered" || oi.Order.Shipping.Status == "Completed"));
+
+				if (!hasCompletedPurchase)
 				{
 					response.StatusCode = 400;
-					response.Message = "Sorry, you can't review product that you have not purchased.";
+					response.Message = "Sorry, you can only review products from completed orders.";
+					return response;
+				}
+
+				var hasExistingReview = await _context.ProductReviews
+					.AsNoTracking()
+					.AnyAsync(r => r.UserId == userId && r.ProductId == dto.ProductId);
+
+				if (hasExistingReview)
+				{
+					response.StatusCode = 409;
+					response.Message = "You have already reviewed this product.";
 					return response;
 				}
 
@@ -187,6 +314,7 @@ namespace GaStore.Core.Services.Implementations
 				}
 
 				review.Rating = dto.Rating;
+				review.Title = dto.Title;
 				review.Comment = dto.Comment;
 				review.DateUpdated = DateTime.UtcNow;
 
@@ -246,8 +374,20 @@ namespace GaStore.Core.Services.Implementations
 				ProductId = review.ProductId,
 				UserId = review.UserId,
 				Rating = review.Rating,
-				Comment = review.Comment
+				Title = review.Title,
+				Comment = review.Comment,
+				DateCreated = review.DateCreated,
+				Product = review.Product == null
+					? null
+					: new Product
+					{
+						Id = review.Product.Id,
+						Name = review.Product.Name,
+						Images = review.Product.Images
+					},
+				User = review.User
 			};
 		}
+
 	}
 }

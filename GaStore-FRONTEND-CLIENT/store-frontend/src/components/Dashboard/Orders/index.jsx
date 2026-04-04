@@ -38,7 +38,7 @@ const Orders = () => {
     setLoading(true);
     setRefreshing(true);
     try {
-      let url = `${endpointsPath.order}/by-user?searchTerm=${searchTerm}&pageNumber=${page}&pageSize=${limit}&status=Completed`;
+      let url = `${endpointsPath.order}/by-user?searchTerm=${searchTerm}&pageNumber=${page}&pageSize=${limit}&status=${statusFilter}`;
 
       if (statusFilter !== "all") {
         url += `&status=${statusFilter}`;
@@ -81,7 +81,7 @@ const Orders = () => {
   const totalSpent = useMemo(
     () =>
       orders.reduce(
-        (sum, order) => sum + Number(order.amountAfterDiscount || order.amount || 0),
+        (sum, order) => sum + Number(!order?.couponCode? order.amount?.toFixed(2) : (order.amountAfterDiscount || 0)),
         0
       ),
     [orders]

@@ -311,7 +311,7 @@ export default function CustomerDashboardHome() {
                     <div className="text-right">
                       <div className="text-sm text-gray-500">Amount</div>
                       <div className="font-semibold text-gray-950">
-                        {formatNumberToCurrency(order.amountAfterDiscount || order.amount || 0)}
+                        {formatNumberToCurrency(!order?.couponCode? order.amount?.toFixed(2) : (order.amountAfterDiscount || 0))}
                       </div>
                     </div>
                     <span

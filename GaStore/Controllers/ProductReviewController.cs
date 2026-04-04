@@ -31,6 +31,16 @@ namespace GaStore.Controllers
 			return StatusCode(response.Status, response);
 		}
 
+		[Authorize(Roles = CustomRoles.User)]
+		[HttpGet("mine/reviewables")]
+		public async Task<ActionResult<PaginatedServiceResponse<List<ReviewableProductDto>>>> GetReviewableProducts(
+			[FromQuery] int pageNumber = 1,
+			[FromQuery] int pageSize = 10)
+		{
+			var response = await _reviewService.GetReviewableProductsAsync(UserId, pageNumber, pageSize);
+			return StatusCode(response.Status, response);
+		}
+
 		[Authorize(Roles = CustomRoles.Admin)]
 		[HttpGet("admin")]
 		public async Task<ActionResult<List<ProductReviewDto>>> GetAllReviews()
