@@ -53,6 +53,7 @@ namespace GaStore.Infrastructure.Repository.UnitOfWork
         public ICartRepository CartRepository { get; }
         public ICartItemRepository CartItemRepository { get; }
         public IPaymentMethodConfigurationRepository PaymentMethodConfigurationRepository { get; }
+        public IWebsiteContentRepository WebsiteContentRepository { get; }
         public IVoucherRepository VoucherRepository { get; }
         public IVoucherRedemptionRepository VoucherRedemptionRepository { get; }
 
@@ -100,6 +101,7 @@ namespace GaStore.Infrastructure.Repository.UnitOfWork
             CartRepository = new CartRepository(_context);
             CartItemRepository = new CartItemRepository(_context);
             PaymentMethodConfigurationRepository = new PaymentMethodConfigurationRepository(_context);
+            WebsiteContentRepository = new WebsiteContentRepository(_context);
             VoucherRepository = new VoucherRepository(_context);
             VoucherRedemptionRepository = new VoucherRedemptionRepository(_context);
         }

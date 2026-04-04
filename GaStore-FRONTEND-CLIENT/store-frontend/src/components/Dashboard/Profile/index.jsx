@@ -555,7 +555,7 @@ const UserProfileView = () => {
               >
                 <span className="flex items-center gap-2">
                   <Share className="h-4 w-4" />
-                  Earn on TOWG. Invite someone
+                  Earn on GaStore. Invite someone
                 </span>
               </button>
                 {/*Referral link section */}

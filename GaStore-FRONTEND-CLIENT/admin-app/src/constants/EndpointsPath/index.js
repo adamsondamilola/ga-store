@@ -39,6 +39,7 @@ const endpointsPath = {
     coupon: 'Coupon',
     manualPayment: 'ManualPayment',
     paymentMethodConfiguration: 'PaymentMethodConfiguration',
+    websiteContent: 'WebsiteContent',
     voucher: 'Voucher',
 
 }

@@ -22,6 +22,10 @@ const SelectedOptionsDisplay = ({
   const handleDecrease = () => {
     if (quantity > 1) onQuantityChange(quantity - 1);
   };
+  const handleImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = AppImages.default;
+  };
 
   const applicableTier = pricingTiers
     .sort((a, b) => b.minQuantity - a.minQuantity)
@@ -54,6 +58,7 @@ const SelectedOptionsDisplay = ({
               src={imageUrl}
               alt={selectedVariant.name}
               className="h-16 w-14 object-cover"
+              onError={handleImageError}
             />
           </div>
           <div>

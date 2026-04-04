@@ -1,8 +1,20 @@
+import AppImages from '@/constants/Images';
 import { useEffect, useState } from 'react';
 
 const ProductImageGallery = ({ imagesToShow, product, selectedImage = 0, onImageSelect }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [localSelectedImage, setLocalSelectedImage] = useState(selectedImage);
+  const getSafeImageSrc = (imageUrl) => {
+    if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || imageUrl === AppImages.loading) {
+      return AppImages.default;
+    }
+
+    return imageUrl;
+  };
+  const handleImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = AppImages.default;
+  };
 
   useEffect(() => {
     setLocalSelectedImage(selectedImage);
@@ -51,9 +63,10 @@ const ProductImageGallery = ({ imagesToShow, product, selectedImage = 0, onImage
               }`}
             >
               <img
-                src={image.imageUrl}
+                src={getSafeImageSrc(image.imageUrl)}
                 alt={`Thumbnail ${index + 1}`}
                 className="h-24 w-full object-cover"
+                onError={handleImageError}
               />
             </button>
           ))}
@@ -65,10 +78,11 @@ const ProductImageGallery = ({ imagesToShow, product, selectedImage = 0, onImage
           </div>
 
           <img
-            src={imagesToShow[activeImageIndex]?.imageUrl}
+            src={getSafeImageSrc(imagesToShow[activeImageIndex]?.imageUrl)}
             alt={product.name}
             className="h-[420px] w-full cursor-zoom-in object-contain sm:h-[520px] lg:h-[640px]"
             onClick={openFullscreen}
+            onError={handleImageError}
           />
 
           {imagesToShow.length > 1 && (
@@ -107,9 +121,10 @@ const ProductImageGallery = ({ imagesToShow, product, selectedImage = 0, onImage
             }`}
           >
             <img
-              src={image.imageUrl}
+              src={getSafeImageSrc(image.imageUrl)}
               alt={`Thumbnail ${index + 1}`}
               className="h-16 w-14 object-cover"
+              onError={handleImageError}
             />
           </button>
         ))}
@@ -129,9 +144,10 @@ const ProductImageGallery = ({ imagesToShow, product, selectedImage = 0, onImage
 
           <div className="relative z-40 flex h-full max-h-screen w-full max-w-6xl items-center justify-center">
             <img
-              src={imagesToShow[activeImageIndex]?.imageUrl}
+              src={getSafeImageSrc(imagesToShow[activeImageIndex]?.imageUrl)}
               alt={product.name}
               className="max-h-full max-w-full object-contain"
+              onError={handleImageError}
             />
 
             {imagesToShow.length > 1 && (

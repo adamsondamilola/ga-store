@@ -54,6 +54,7 @@ namespace GaStore.Infrastructure.Repository.Interfaces
     public interface ICartRepository : IGenericRepository<Cart> { }
     public interface ICartItemRepository : IGenericRepository<CartItem> { }
     public interface IPaymentMethodConfigurationRepository : IGenericRepository<PaymentMethodConfiguration> { }
+    public interface IWebsiteContentRepository : IGenericRepository<WebsiteContent> { }
     public interface IVoucherRepository : IGenericRepository<Voucher> { }
     public interface IVoucherRedemptionRepository : IGenericRepository<VoucherRedemption> { }
 }

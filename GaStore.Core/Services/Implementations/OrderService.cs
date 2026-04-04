@@ -253,19 +253,20 @@ namespace GaStore.Core.Services.Implementations
 				// Price validation with tolerance
 				decimal priceTolerance = 0.1m; // 10 cents tolerance for floating point differences
 
+				/*
 				if (Math.Abs(dto.SubTotal - subTotal) > priceTolerance)
 				{
 					response.Message = $"Subtotal mismatch. Expected: {subTotal}, Received: {dto.SubTotal}";
 					return response;
-				}
+				}*/
 
 				//to check later
-				/*
+				
 				if (Math.Abs(dto.Total - response.Data.Total) > priceTolerance)
 				{
 					response.Message = $"Total mismatch. Expected: {response.Data.Total}, Received: {dto.Total}";
 					return response;
-				}*/
+				}
 
 				response.StatusCode = 200;
 				response.Message = "Order summary calculated successfully";

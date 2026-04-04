@@ -67,6 +67,7 @@ const AsideComponent = () => {
 
   const isActive = (path) =>
     currentPath === path ? "text-blue-500 dark:text-blue-400 font-semibold" : "";
+  const isWebsiteContentActive = currentPath.startsWith("/website-content");
 
   return (
     <Sidebar aria-label="Sidebar with multi-level dropdown example" className="text-start">
@@ -138,6 +139,12 @@ const AsideComponent = () => {
           <Sidebar.Item href="/manual-payment-accounts" icon={Payments} className={isActive("/manual-payment-accounts")}>
             Payment Settings
           </Sidebar.Item>
+
+          <SidebarCollapse icon={Inbox} label="Website Content" className={isWebsiteContentActive ? "text-blue-500 dark:text-blue-400 font-semibold" : ""}>
+            <SidebarItem href="/website-content" className={isActive("/website-content")}>Website Settings</SidebarItem>
+            <SidebarItem href="/website-content/faqs" className={isActive("/website-content/faqs")}>FAQs</SidebarItem>
+            <SidebarItem href="/website-content/policies" className={isActive("/website-content/policies")}>Policies and Legal Content</SidebarItem>
+          </SidebarCollapse>
 
           <Sidebar.Item href="/vouchers" icon={Ticket} className={isActive("/vouchers")}>
             Vouchers

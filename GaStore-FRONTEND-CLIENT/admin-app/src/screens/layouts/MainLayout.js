@@ -5,8 +5,8 @@ import Footer from '../../components/landing/Footer';
 const MainLayout = () => {
 
   const metadata = {
-    title: 'TOWG - Admin',
-    description: 'TOWG Natural Wellness Products',
+    title: 'GaStore - Admin',
+    description: 'GaStore online store for different types of products',
   }
 
   return (

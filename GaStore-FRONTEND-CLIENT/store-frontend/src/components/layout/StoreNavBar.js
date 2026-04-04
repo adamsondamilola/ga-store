@@ -22,7 +22,8 @@ import {
 } from 'react-icons/fi';
 import { IoMdArrowDropdown } from 'react-icons/io';
 import NavigationButtons from './NavigationButtons';
-import AppImages from '@/constants/Images';
+import { useWebsiteContent } from '@/components/providers/WebsiteContentProvider';
+import { getWebsiteLogo } from '@/utils/websiteContentDefaults';
 
 export default function StoreNavBar() {
   const [isMouseInDropdown, setIsMouseInDropdown] = useState(false);
@@ -33,6 +34,7 @@ export default function StoreNavBar() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [expandedMobileCategories, setExpandedMobileCategories] = useState({});
   const [categories, setCategories] = useState([]);
+  const { websiteContent } = useWebsiteContent();
 
   const { cart, updateCart, updateQuantity } = useCart();
 
@@ -200,8 +202,8 @@ const renderProductTypes = (productTypes, subCategory, mainCategory) => {
           </button>
           <Link href={'/'} className="text-2xl font-bold cursor-pointer">
             <img 
-              src={AppImages.logo} 
-              alt="App Logo"
+              src={getWebsiteLogo(websiteContent)}
+              alt={websiteContent.siteName || "App Logo"}
               className="w-32 h-auto"
               width={128}
               height={64}

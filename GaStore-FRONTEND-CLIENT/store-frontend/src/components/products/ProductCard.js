@@ -17,6 +17,17 @@ export default function ProductCard({ product, viewAll = true, featured = false,
   const [currentPrice, setCurrentPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
   const [variantQuantities, setVariantQuantities] = useState({});
+  const getSafeImageSrc = (imageUrl) => {
+    if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || imageUrl === AppImages.loading) {
+      return AppImages.default;
+    }
+
+    return imageUrl;
+  };
+  const handleImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = AppImages.default;
+  };
 
   // Helper to get product data from either structure
   const getProductData = () => {
@@ -402,12 +413,12 @@ export default function ProductCard({ product, viewAll = true, featured = false,
 
   const displayPrice = getDisplayPrice();
   const modalGalleryImages = [
-    ...(selectedVariant?.images?.map((image) => image?.imageUrl).filter(Boolean) || []),
-    ...(productData?.images?.map((image) => image?.imageUrl).filter(Boolean) || [])
+    ...(selectedVariant?.images?.map((image) => getSafeImageSrc(image?.imageUrl)).filter(Boolean) || []),
+    ...(productData?.images?.map((image) => getSafeImageSrc(image?.imageUrl)).filter(Boolean) || [])
   ].filter((image, index, arr) => arr.indexOf(image) === index);
   const brandName = productData?.brand?.name;
   const totalStock = priceVariants.reduce((total, variant) => total + (variant?.stockQuantity || 0), 0);
-  const activeImage = selectedVariant?.images?.[0]?.imageUrl || priceVariants[0]?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default;
+  const activeImage = getSafeImageSrc(selectedVariant?.images?.[0]?.imageUrl || priceVariants[0]?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl);
   const quickMeta = selectedVariant?.weight ? `${(parseFloat(selectedVariant.weight) / 1000).toFixed(1)}kg` : null;
   const optionLabel = hasMultipleOptions ? `${priceVariants.length} option${priceVariants.length > 1 ? 's' : ''}` : null;
   const primaryTag = discount > 0 ? `${discount}% OFF` : (hasMultipleOptions ? 'Multi option' : 'In stock');
@@ -428,6 +439,7 @@ export default function ProductCard({ product, viewAll = true, featured = false,
                 viewAll || !featured ? "group-hover:scale-105" : ""
               }`}
               loading="lazy"
+              onError={handleImageError}
             />
           </Link>
 
@@ -586,9 +598,10 @@ export default function ProductCard({ product, viewAll = true, featured = false,
               <div className="border-b border-gray-200 bg-[#fbfbfb] p-4 lg:border-b-0 lg:border-r">
                 <div className="overflow-hidden rounded-[20px] bg-white ring-1 ring-gray-200">
                   <img
-                    src={modalPreviewImage || selectedVariant?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default}
+                    src={getSafeImageSrc(modalPreviewImage || selectedVariant?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl)}
                     alt={productData?.name}
                     className="h-[250px] w-full object-cover sm:h-[340px]"
+                    onError={handleImageError}
                   />
                 </div>
 
@@ -606,9 +619,10 @@ export default function ProductCard({ product, viewAll = true, featured = false,
                         }`}
                       >
                         <img
-                          src={image}
+                          src={getSafeImageSrc(image)}
                           alt={`${productData?.name} preview ${index + 1}`}
                           className="h-16 w-12 object-cover"
+                          onError={handleImageError}
                         />
                       </button>
                     ))}
@@ -677,9 +691,10 @@ export default function ProductCard({ product, viewAll = true, featured = false,
                           className="overflow-hidden rounded-2xl border border-gray-200"
                         >
                           <img
-                            src={variant.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl || AppImages.default}
+                            src={getSafeImageSrc(variant.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl)}
                             alt={variant.variantName}
                             className="h-16 w-12 object-cover"
+                            onError={handleImageError}
                           />
                         </button>
 

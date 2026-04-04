@@ -127,7 +127,7 @@ export default function PremiumLandingPage() {
           <div className="flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
             <p className="font-[cursive] text-4xl leading-none text-[#ffd95c] md:text-6xl">{heroBanner?.title || "Seasonal Picks"}</p>
             <h1 className="mt-4 text-4xl font-black leading-none md:text-6xl">
-              Discover <span className="text-[#ffffff]">TOWG Essentials</span>
+              Discover <span className="text-[#ffffff]">GaStore Essentials</span>
             </h1>
             <p className="mt-4 max-w-md text-sm text-white/90 md:text-base">
               {heroBanner?.hasLink && heroBanner?.link
@@ -215,7 +215,7 @@ export default function PremiumLandingPage() {
                 </span>
                 <p className="mt-4 text-3xl font-black leading-tight">{limitedOffer.title}</p>
                 <p className="mt-4 text-sm leading-7 text-white/85">
-                  {limitedOffer.subtitle || "Shop the active promotion curated by the TOWG team before the timer runs out."}
+                  {limitedOffer.subtitle || "Shop the active promotion curated by the GaStore team before the timer runs out."}
                 </p>
                 <p className="mt-4 text-sm text-white/70">Offer ends {new Date(limitedOffer.endDate).toLocaleString()}</p>
               </div>

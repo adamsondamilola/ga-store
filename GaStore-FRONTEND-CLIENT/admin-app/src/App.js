@@ -47,6 +47,7 @@ import AuditLogsScreen from './screens/auditlogs';
 import ManualPaymentAccountsScreen from './screens/manual-payment-accounts';
 import LimitedOffersScreen from './screens/limited-offers';
 import VouchersScreen from './screens/vouchers';
+import WebsiteContentScreen from './screens/website-content';
 
 function App() {
   return (
@@ -135,6 +136,13 @@ function App() {
 
         <Route path="/manual-payment-accounts" element={<DashboardLayout />}>
         <Route index element={<ManualPaymentAccountsScreen />} />
+        <Route path='*' element={<NotFoundPage/>} />
+        </Route>
+
+        <Route path="/website-content" element={<DashboardLayout />}>
+        <Route index element={<WebsiteContentScreen section="settings" />} />
+        <Route path="/website-content/faqs" element={<WebsiteContentScreen section="faqs" />} />
+        <Route path="/website-content/policies" element={<WebsiteContentScreen section="policies" />} />
         <Route path='*' element={<NotFoundPage/>} />
         </Route>
 

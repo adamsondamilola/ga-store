@@ -99,6 +99,7 @@ namespace GaStore.Models.Database
 
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<PaymentMethodConfiguration> PaymentMethodConfigurations { get; set; }
+        public DbSet<WebsiteContent> WebsiteContents { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherRedemption> VoucherRedemptions { get; set; }
 
@@ -217,6 +218,10 @@ namespace GaStore.Models.Database
 
             modelBuilder.Entity<PaymentMethodConfiguration>()
                 .HasIndex(x => x.MethodKey)
+                .IsUnique();
+
+            modelBuilder.Entity<WebsiteContent>()
+                .HasIndex(x => x.SiteKey)
                 .IsUnique();
 
             modelBuilder.Entity<Voucher>()

@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "../globals.css";
 import StoreNavBar from "@/components/layout/StoreNavBar";
+import CookieConsent from "@/components/layout/CookieConsent";
 import FooterComponent from "@/components/layout/Footer";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "TOWG",
-  description: "TOWG",
+  title: "GaStore",
+  description: "GaStore",
 };
 
 const inter = Inter({ subsets: ["latin"] });
@@ -37,6 +38,7 @@ export default function RootLayout({ children }) {
             </ErrorBoundary>
           </div>
         </div>
+        <CookieConsent />
         <FooterComponent/>
         <Toaster position="top-right" />
       </body>

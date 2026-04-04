@@ -25,6 +25,17 @@ export default function ProductViewComponent({ productData, productReviews }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [hasSelectedItem, setHasSelectedItem] = useState(false);
   const navigate = useRouter();
+  const getSafeImageSrc = (imageUrl) => {
+    if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || imageUrl === AppImages.loading) {
+      return AppImages.default;
+    }
+
+    return imageUrl;
+  };
+  const handleImageError = (event) => {
+    event.currentTarget.onerror = null;
+    event.currentTarget.src = AppImages.default;
+  };
 
   const selectedColor = useMemo(() => selectedVariant?.color || null, [selectedVariant]);
   const imagesToShow = useMemo(
@@ -379,11 +390,12 @@ export default function ProductViewComponent({ productData, productReviews }) {
                           aria-label={`Select color ${color}`}
                         >
                           <img
-                            src={variant?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl}
+                            src={getSafeImageSrc(variant?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl)}
                             alt={color}
                             className="h-16 w-14 rounded-xl object-cover"
                             width={64}
                             height={64}
+                            onError={handleImageError}
                           />
                         </button>
                       );

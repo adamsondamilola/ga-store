@@ -1,8 +1,8 @@
 const AppStrings = {
-    title: "TOWG",
+    title: "GaStore",
     website: "towg.ng",
-    description: "The ultimate marketplace that connects buyers and sellers directly",
-    longDescription: "Buyers can browse a wide range of products, connect with sellers in real time through our integrated chat feature, and make informed purchase decisions with ease.",
+    description: "An online store for different types of products",
+    longDescription: "Customers can browse and shop a wide range of products on GaStore, from everyday essentials to lifestyle items, all in one place.",
     internalServerError: 'Internal server error',
     somethingWentWrong: 'Something went wrong',
     nairaSymbol: "₦",

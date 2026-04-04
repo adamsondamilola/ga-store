@@ -126,6 +126,7 @@ builder.Services.AddHttpClient<IRecaptchaService, RecaptchaService>();
 builder.Services.AddScoped<IImageUploadService, ImageUploadService>();
 builder.Services.AddScoped<IManualPaymentService, ManualPaymentService>();
 builder.Services.AddScoped<IPaymentMethodConfigurationService, PaymentMethodConfigurationService>();
+builder.Services.AddScoped<IWebsiteContentService, WebsiteContentService>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 
 builder.Services.AddHttpContextAccessor();

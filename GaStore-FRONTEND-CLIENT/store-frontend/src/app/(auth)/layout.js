@@ -3,7 +3,8 @@ import "../globals.css";
 import FooterComponent from "@/components/layout/Footer";
 import { Toaster } from "react-hot-toast";
 import Image from "next/image";
-import AppImages from "@/constants/Images";
+import getWebsiteContent from "@/utils/getWebsiteContent";
+import { getWebsiteLogo } from "@/utils/websiteContentDefaults";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,11 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Account | TOWG",
-  description: "Account | TOWG",
+  title: "Account | GaStore",
+  description: "Account | GaStore",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const websiteContent = await getWebsiteContent();
+
   return (
     <html lang="en">
       <body
@@ -33,14 +36,14 @@ export default function RootLayout({ children }) {
             <div className="hidden lg:block relative w-1/2 h-screen">
               <Image
                 src="/images/auth_bg.png" // Replace with your image path
-                alt="TOWG"
+                alt={websiteContent.siteName}
                 fill
                 className="object-cover"
                 priority
               />
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                 <div className="text-white p-8 max-w-md">
-                  <h2 className="text-4xl font-bold mb-4">Welcome to <br/>TOWG</h2>
+                  <h2 className="text-4xl font-bold mb-4">Welcome to <br/>{websiteContent.siteName}</h2>
                   {/*<p className="text-lg">
                     Discover delicious meals and manage your account with ease.
                   </p>*/}
@@ -54,8 +57,8 @@ export default function RootLayout({ children }) {
                 <div className="w-full max-w-md">
                   <div className="justify-center flex mb-4">
                     <img 
-  src={AppImages.logo} 
-  alt="TOWG"
+  src={getWebsiteLogo(websiteContent)}
+  alt={websiteContent.siteName}
   className="w-32 h-auto"
   width={128}
   height={64}

@@ -210,6 +210,11 @@ namespace GaStore.Infrastructure.Repository.Interfaces
         public PaymentMethodConfigurationRepository(DatabaseContext context) : base(context) { }
     }
 
+    public class WebsiteContentRepository : GenericRepository<WebsiteContent>, IWebsiteContentRepository
+    {
+        public WebsiteContentRepository(DatabaseContext context) : base(context) { }
+    }
+
     public class VoucherRepository : GenericRepository<Voucher>, IVoucherRepository
     {
         public VoucherRepository(DatabaseContext context) : base(context) { }

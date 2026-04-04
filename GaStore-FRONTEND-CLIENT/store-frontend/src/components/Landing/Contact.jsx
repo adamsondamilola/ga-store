@@ -1,6 +1,5 @@
 "use client";
 
-import AppStrings from "@/constants/Strings";
 import Link from "next/link";
 import {
   FiClock,
@@ -10,33 +9,7 @@ import {
   FiPhoneCall,
   FiArrowRight,
 } from "react-icons/fi";
-
-const contactCards = [
-  {
-    title: "Email Support",
-    value: AppStrings.infoEmail,
-    description: "Best for order questions, product details, and general enquiries.",
-    href: `mailto:${AppStrings.infoEmail}`,
-    cta: "Send an email",
-    icon: FiMail,
-  },
-  {
-    title: "WhatsApp",
-    value: AppStrings.phoneNumber,
-    description: "Fastest route for urgent complaints and quick support follow-ups.",
-    href: `https://wa.me/${AppStrings.whatsApp}`,
-    cta: "Start chat",
-    icon: FiMessageCircle,
-  },
-  {
-    title: "Call Us",
-    value: AppStrings.phoneNumber,
-    description: "Speak with our team during business hours for direct assistance.",
-    href: `tel:${AppStrings.phoneNumber}`,
-    cta: "Call now",
-    icon: FiPhoneCall,
-  },
-];
+import { useWebsiteContent } from "@/components/providers/WebsiteContentProvider";
 
 const quickHelp = [
   {
@@ -60,6 +33,34 @@ const quickHelp = [
 ];
 
 export default function Contact() {
+  const { websiteContent } = useWebsiteContent();
+  const contactCards = [
+    {
+      title: "Email Support",
+      value: websiteContent.infoEmail,
+      description: "Best for order questions, product details, and general enquiries.",
+      href: `mailto:${websiteContent.infoEmail}`,
+      cta: "Send an email",
+      icon: FiMail,
+    },
+    {
+      title: "WhatsApp",
+      value: websiteContent.phoneNumber,
+      description: "Fastest route for urgent complaints and quick support follow-ups.",
+      href: `https://wa.me/${websiteContent.whatsAppNumber}`,
+      cta: "Start chat",
+      icon: FiMessageCircle,
+    },
+    {
+      title: "Call Us",
+      value: websiteContent.phoneNumber,
+      description: "Speak with our team during business hours for direct assistance.",
+      href: `tel:${websiteContent.phoneNumber}`,
+      cta: "Call now",
+      icon: FiPhoneCall,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#f8f6f1] text-slate-900">
       <section className="border-b border-stone-200 bg-white">
@@ -121,7 +122,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Business Hours</h3>
-                  <p className="mt-2 text-base font-medium text-slate-900">Monday to Friday, 9:00 AM to 6:00 PM</p>
+                  <p className="mt-2 text-base font-medium text-slate-900">{websiteContent.businessHours}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">Most enquiries are answered within one business day.</p>
                 </div>
               </div>
@@ -138,7 +139,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Office Address</h3>
-                    <p className="mt-3 text-sm leading-7 text-slate-700">{AppStrings.officeAddress}</p>
+                    <p className="mt-3 text-sm leading-7 text-slate-700">{websiteContent.officeAddress}</p>
                   </div>
                 </div>
               </div>

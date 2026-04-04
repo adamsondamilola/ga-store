@@ -8,9 +8,12 @@ import toast from 'react-hot-toast';
 import { useFlutterwave } from 'flutterwave-react-v3';
 import { usePaystackPayment } from 'react-paystack';
 import AppStrings from '@/constants/Strings';
+import { useWebsiteContent } from '@/components/providers/WebsiteContentProvider';
+import { getWebsiteLogo } from '@/utils/websiteContentDefaults';
 
 export function useCheckout() {
   const router = useRouter();
+  const { websiteContent } = useWebsiteContent();
 
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentGateway, setPaymentGateway] = useState('');
@@ -800,12 +803,12 @@ export function useCheckout() {
       phone_number:
         selectedAddress?.phoneNumber ||
         process.env.NEXT_PUBLIC_PUBLIC_PHONE,
-      name: `${selectedAddress?.fullName || AppStrings.title}`,
+      name: `${selectedAddress?.fullName || websiteContent.siteName || AppStrings.title}`,
     },
     customizations: {
-      title: AppStrings.title,
+      title: websiteContent.siteName || AppStrings.title,
       description: 'Items Payment',
-      logo: process.env.NEXT_PUBLIC_PUBLIC_LOGO,
+      logo: getWebsiteLogo(websiteContent),
     },
   };
 
@@ -862,7 +865,7 @@ const initializePaystackPayment = usePaystackPayment({
       state: selectedAddress?.state || pickupAddressState,
       city: shippingCity || pickupAddressCity,
       customerAddress: selectedAddress?.address || '',
-      shippingProvider: shippingProvider || 'TOWG',
+      shippingProvider: shippingProvider || 'GaStore',
       customerPhone:
         selectedAddress?.phoneNumber || pickupAddressPhone,
       fullName: selectedAddress?.fullName || user?.name,

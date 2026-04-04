@@ -329,15 +329,6 @@ namespace GaStore.Data.Migrations
                     b.Property<string>("PaymentGatewayTransactionId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("VoucherAmountApplied")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("VoucherCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("VoucherId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<decimal?>("SubTotal")
                         .HasColumnType("decimal(18,2)");
 
@@ -348,6 +339,15 @@ namespace GaStore.Data.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("VoucherAmountApplied")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("VoucherCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("VoucherId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1660,7 +1660,8 @@ namespace GaStore.Data.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ContactEmail")
                         .HasMaxLength(255)
@@ -1754,6 +1755,90 @@ namespace GaStore.Data.Migrations
                     b.HasIndex("VoucherId");
 
                     b.ToTable("VoucherRedemptions");
+                });
+
+            modelBuilder.Entity("GaStore.Data.Entities.System.WebsiteContent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BusinessHours")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FaqsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FooterDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InfoEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OfficeAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PrivacyPolicyContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RefundPolicyContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ShippingPolicyContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SiteDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SiteKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SiteName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupportEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TermsOfServiceContent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SiteKey")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteContents");
                 });
 
             modelBuilder.Entity("GaStore.Data.Entities.Users.DeliveryAddress", b =>
@@ -2511,6 +2596,17 @@ namespace GaStore.Data.Migrations
                     b.Navigation("Referral");
                 });
 
+            modelBuilder.Entity("GaStore.Data.Entities.Shippings.PriceByWeight", b =>
+                {
+                    b.HasOne("GaStore.Data.Entities.Shippings.DeliveryLocation", "DeliveryLocation")
+                        .WithMany("PriceByWeights")
+                        .HasForeignKey("DeliveryLocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DeliveryLocation");
+                });
+
             modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
                 {
                     b.HasOne("GaStore.Data.Entities.Users.User", "CreatedByUser")
@@ -2546,17 +2642,6 @@ namespace GaStore.Data.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Voucher");
-                });
-
-            modelBuilder.Entity("GaStore.Data.Entities.Shippings.PriceByWeight", b =>
-                {
-                    b.HasOne("GaStore.Data.Entities.Shippings.DeliveryLocation", "DeliveryLocation")
-                        .WithMany("PriceByWeights")
-                        .HasForeignKey("DeliveryLocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DeliveryLocation");
                 });
 
             modelBuilder.Entity("GaStore.Data.Entities.Users.User", b =>
@@ -2647,11 +2732,6 @@ namespace GaStore.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
-                {
-                    b.Navigation("Redemptions");
-                });
-
             modelBuilder.Entity("GaStore.Data.Entities.Products.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -2725,6 +2805,11 @@ namespace GaStore.Data.Migrations
             modelBuilder.Entity("GaStore.Data.Entities.Shippings.DeliveryLocation", b =>
                 {
                     b.Navigation("PriceByWeights");
+                });
+
+            modelBuilder.Entity("GaStore.Data.Entities.System.Voucher", b =>
+                {
+                    b.Navigation("Redemptions");
                 });
 
             modelBuilder.Entity("GaStore.Data.Entities.Users.DeliveryAddress", b =>
