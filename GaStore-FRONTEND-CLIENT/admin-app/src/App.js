@@ -48,6 +48,8 @@ import ManualPaymentAccountsScreen from './screens/manual-payment-accounts';
 import LimitedOffersScreen from './screens/limited-offers';
 import VouchersScreen from './screens/vouchers';
 import WebsiteContentScreen from './screens/website-content';
+import MarketplaceKycScreen from './screens/marketplace/kyc';
+import MarketplaceProductsScreen from './screens/marketplace/products';
 
 function App() {
   return (
@@ -107,6 +109,7 @@ function App() {
 
         <Route path="/products" element={<DashboardLayout />}>
         <Route index element={<ProductsScreen />} />
+        <Route path="/products/pending-review" element={<MarketplaceProductsScreen />} />
         <Route path="/products/new" element={<CreateProductScreen />} />
         <Route path="/products/:productId/details" element={<ProductDetailsScreen />} />
         <Route path="/products/:productId/update" element={<UpdateProductScreen />} />
@@ -160,6 +163,12 @@ function App() {
         <Route index element={<UsersScreen />} />
         <Route path="/users/new" element={<CreateNewUserScreen />} />
         <Route path="/users/referral-commission" element={<ReferralCommissionScreen />} />
+        <Route path='*' element={<NotFoundPage/>} />
+        </Route>
+
+        <Route path="/marketplace" element={<DashboardLayout />}>
+        <Route path="/marketplace/kyc" element={<MarketplaceKycScreen />} />
+        <Route path="/marketplace/products" element={<MarketplaceProductsScreen />} />
         <Route path='*' element={<NotFoundPage/>} />
         </Route>
 

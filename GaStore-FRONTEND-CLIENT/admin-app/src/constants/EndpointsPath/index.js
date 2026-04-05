@@ -41,6 +41,8 @@ const endpointsPath = {
     paymentMethodConfiguration: 'PaymentMethodConfiguration',
     websiteContent: 'WebsiteContent',
     voucher: 'Voucher',
+    vendor: 'vendor',
+    adminModeration: 'admin',
 
 }
 export default endpointsPath

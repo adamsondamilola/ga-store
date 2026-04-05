@@ -38,10 +38,19 @@ const primaryItems = [
     icon: Sell,
     children: [
       { href: "/products", label: "Manage Products" },
+      { href: "/products/pending-review", label: "Pending Review" },
       { href: "/products/new", label: "Add Product" },
       { href: "/products/featured", label: "Featured Products" },
       { href: "/products/limited-offers", label: "Limited Offers", icon: BadgePercent },
       { href: "/products/vat", label: "VAT" },
+    ],
+  },
+  {
+    label: "Vendor Moderation",
+    icon: Users,
+    children: [
+      { href: "/marketplace/kyc", label: "Pending KYC" },
+      { href: "/marketplace/products", label: "Pending Products" },
     ],
   },
   {

@@ -13,7 +13,9 @@ import {
   FiHome,
   FiLogOut,
   FiMapPin,
+  FiPackage,
   FiSettings,
+  FiShield,
   FiStar,
   FiUser,
   FiUsers,
@@ -28,6 +30,8 @@ const primaryItems = [
   { href: "/customer/reviews", label: "Reviews", icon: FiStar },
   { href: "/customer/referrals", label: "Referrals", icon: FiUsers },
   { href: "/customer/wallet", label: "Commission", icon: FiDollarSign },
+  { href: "/customer/vendor", label: "Vendor Hub", icon: FiShield },
+  { href: "/customer/vendor/products", label: "Vendor Products", icon: FiPackage },
 ];
 
 const secondaryItems = [

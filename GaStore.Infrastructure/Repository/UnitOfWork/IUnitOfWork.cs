@@ -11,6 +11,7 @@ namespace GaStore.Infrastructure.Repository.UnitOfWork
 	{
 		public IOtpRepository OtpRepository { get; }
 		public IUserRepository UserRepository { get; }
+        public IVendorKycRepository VendorKycRepository { get; }
 		public IRoleRepository RoleRepository { get; }
 		public IUserProfileRepository UserProfileRepository { get; }
 		public IDeliveryAddressRepository DeliveryAddressRepository { get; }

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using GaStore.Data.Entities.Products;
 using GaStore.Data.Entities.Referrals;
+using GaStore.Data.Enums;
 using GaStore.Data.Entities.Wallets;
 
 namespace GaStore.Data.Dtos.UsersDto
@@ -20,6 +21,9 @@ namespace GaStore.Data.Dtos.UsersDto
         public string Password { get; set; } // Hashed password for security
         public string PasswordConfirmation { get; set; }
         public string? Referrer { get; set; }
+        public bool IsVendor { get; set; } = false;
+        public KycStatus KycStatus { get; set; } = KycStatus.NotStarted;
+        public bool CanPost { get; set; } = false;
 
         //public bool IsActive { get; set; }   // Indicates if the user is active
         //public bool IsEmailVerified { get; set; }   // Indicates if the email is verified
@@ -44,6 +48,9 @@ namespace GaStore.Data.Dtos.UsersDto
         public string Email { get; set; }    // Email address
         public bool IsAdmin { get; set; } = false;
         public bool IsSuperAdmin { get; set; } = false;
+        public bool IsVendor { get; set; } = false;
+        public KycStatus KycStatus { get; set; } = KycStatus.NotStarted;
+        public bool CanPost { get; set; } = false;
         public virtual UserProfileDto? ProfileDto { get; set; }
 
         public virtual ICollection<Referral>? Referrals { get; set; } // Referrals made by the user
@@ -55,5 +62,6 @@ namespace GaStore.Data.Dtos.UsersDto
         public Guid? Id { get; set; }
         public bool IsAdmin { get; set; } = false;
         public bool IsSuperAdmin { get; set; } = false;
+        public bool IsVendor { get; set; } = false;
     }
 }

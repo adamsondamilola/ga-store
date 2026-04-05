@@ -16,6 +16,7 @@ namespace GaStore.Infrastructure.Repository.UnitOfWork
 		// Repository instances
 		public IOtpRepository OtpRepository { get; }
 		public IUserRepository UserRepository { get; }
+        public IVendorKycRepository VendorKycRepository { get; }
 		public IRoleRepository RoleRepository { get; }
 		public IUserProfileRepository UserProfileRepository { get; }
 		public IDeliveryAddressRepository DeliveryAddressRepository { get; }
@@ -64,6 +65,7 @@ namespace GaStore.Infrastructure.Repository.UnitOfWork
 			// Initialize repositories
 			OtpRepository = new OtpRepository(_context);
 			UserRepository = new UserRepository(_context);
+            VendorKycRepository = new VendorKycRepository(_context);
 			RoleRepository = new RoleRepository(_context);
 			WalletRepository = new WalletRepository(_context);
 			UserProfileRepository = new UserProfileRepository(_context);

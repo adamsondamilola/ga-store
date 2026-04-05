@@ -12,6 +12,8 @@ namespace GaStore.Core.Services.Interfaces
 	public interface IUserService
 	{
 		Task<ServiceResponse<User>> GetByIdAsync(Guid userId);
+        Task<User?> GetEntityByIdAsync(Guid userId);
+        Task<ServiceResponse<User>> UpdateEntityAsync(User user);
 		Task<PaginatedServiceResponse<List<User>>> GetAllUsersAsync(
 	int pageNumber,
 	int pageSize,

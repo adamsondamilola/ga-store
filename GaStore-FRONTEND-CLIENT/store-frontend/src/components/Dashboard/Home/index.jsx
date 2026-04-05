@@ -10,6 +10,7 @@ import {
   FiMapPin,
   FiPackage,
   FiRefreshCw,
+  FiShield,
   FiStar,
   FiUser,
   FiUsers,
@@ -48,6 +49,13 @@ const quickLinks = [
     icon: FiUser,
     accent: "from-[#fae8ff] to-[#fdf4ff]",
   },
+  {
+    title: "Vendor Hub",
+    description: "Manage KYC and vendor product readiness.",
+    href: "/customer/vendor",
+    icon: FiShield,
+    accent: "from-[#fee2e2] to-[#fff1f2]",
+  },
 ];
 
 export default function CustomerDashboardHome() {
@@ -58,6 +66,7 @@ export default function CustomerDashboardHome() {
   const [orders, setOrders] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [user, setUser] = useState(null);
+  const [vendorStatus, setVendorStatus] = useState(null);
 
   const fetchDashboardData = async (showRefreshToast = false) => {
     try {
@@ -75,7 +84,7 @@ export default function CustomerDashboardHome() {
       const currentUser = loggedInUserResp.result.data;
       setUser(currentUser);
 
-      const [profileResp, walletResp, ordersResp, referralsResp] = await Promise.all([
+      const [profileResp, walletResp, ordersResp, referralsResp, vendorResp] = await Promise.all([
         requestHandler.get(`${endpointsPath.profile}/${currentUser.id}`, true),
         requestHandler.get(`${endpointsPath.wallet}/${currentUser.id}/user`, true),
         requestHandler.get(
@@ -86,6 +95,7 @@ export default function CustomerDashboardHome() {
           `${endpointsPath.referral}?pageNumber=1&pageSize=20&referrerId=${currentUser.id}`,
           true
         ),
+        requestHandler.get(`${endpointsPath.vendor}/kyc/status`, true),
       ]);
 
       if (profileResp.statusCode === 200) {
@@ -102,6 +112,12 @@ export default function CustomerDashboardHome() {
 
       if (referralsResp.statusCode === 200) {
         setReferrals(referralsResp.result?.data || []);
+      }
+
+      if (vendorResp.statusCode === 200) {
+        setVendorStatus(vendorResp.result?.data || null);
+      } else {
+        setVendorStatus(null);
       }
 
       if (showRefreshToast) {
@@ -133,6 +149,9 @@ export default function CustomerDashboardHome() {
     () => referrals.reduce((sum, referral) => sum + Number(referral.totalCommissionEarned || 0), 0),
     [referrals]
   );
+  const vendorLabel = vendorStatus?.isVendor
+    ? vendorStatus?.kycStatus?.replace(/([a-z])([A-Z])/g, "$1 $2") || "Not Started"
+    : "Inactive";
   const formatOrderDate = (value) =>
     new Date(value).toLocaleDateString("en-US", {
       month: "short",
@@ -179,6 +198,12 @@ export default function CustomerDashboardHome() {
       value: referrals.length,
       note: "Connected accounts",
       icon: FiUsers,
+    },
+    {
+      title: "Vendor status",
+      value: vendorLabel,
+      note: vendorStatus?.canPost ? "Ready to post products" : "KYC approval required",
+      icon: FiShield,
     },
   ];
 

@@ -97,26 +97,41 @@ namespace GaStore.Core.Services.Implementations
 
 					// Check if user already exists
 					var existingUser = await query.Get(x => x.Email == users.Email);
-					if (existingUser == null)
-					{
-						// Add user to database
-						await _unitOfWork.UserRepository.Add(model);
+                    if (existingUser == null)
+                    {
+                        // Add user to database
+                        await _unitOfWork.UserRepository.Add(model);
 
-						// Create a default role for the user
-						RoleDto roleDto = new()
-						{
-							UserId = model.Id,
-							Name = "User", // Default role name
-							Description = "Default role for new users",
-							UsersDto = new List<UserDto> { users } // Add the current user to the role
-						};
+                        // Create a default role for the user
+                        var roleDtos = new List<RoleDto>
+                        {
+                            new()
+                            {
+                                UserId = model.Id,
+                                Name = "User",
+                                Description = "Default role for new users",
+                                UsersDto = new List<UserDto> { users }
+                            }
+                        };
 
-						// Map RoleDto to Role entity
-						var roleModel = _mapper.Map<RoleDto, Role>(roleDto);
+                        if (users.IsVendor)
+                        {
+                            model.IsVendor = true;
+                            roleDtos.Add(new RoleDto
+                            {
+                                UserId = model.Id,
+                                Name = "Vendor",
+                                Description = "Marketplace vendor",
+                                UsersDto = new List<UserDto> { users }
+                            });
+                        }
 
-						// Add the role to the database
-						await _unitOfWork.RoleRepository.Add(roleModel);
-						await _unitOfWork.CompletedAsync(model.Id);
+                        foreach (var roleDto in roleDtos)
+                        {
+                            var roleModel = _mapper.Map<RoleDto, Role>(roleDto);
+                            await _unitOfWork.RoleRepository.Add(roleModel);
+                        }
+                        await _unitOfWork.CompletedAsync(model.Id);
 
 						//add wallet
 						WalletDto walletDto = new()
@@ -200,6 +215,10 @@ namespace GaStore.Core.Services.Implementations
 						{
 							model.IsAdmin = true;
 						}
+                        if (users.IsVendor)
+                        {
+                            model.IsVendor = true;
+                        }
                             // Add user to database
                             string pass = Randoms.Strings(10);
                         model.Password = Encryption.Encrypt(pass); 
@@ -236,6 +255,17 @@ namespace GaStore.Core.Services.Implementations
                                 UsersDto = new List<UserDto> { _mapper.Map<CreateUserDto, UserDto>(users) } // Add the current user to the role
                             };
                             roleDtos.Add(roleDtoAdmin);
+                        }
+                        if (users.IsVendor)
+                        {
+                            RoleDto roleDtoVendor = new()
+                            {
+                                UserId = model.Id,
+                                Name = "Vendor",
+                                Description = "Marketplace vendor",
+                                UsersDto = new List<UserDto> { _mapper.Map<CreateUserDto, UserDto>(users) }
+                            };
+                            roleDtos.Add(roleDtoVendor);
                         }
                         roleDtos.Add(roleDtoUser);
 

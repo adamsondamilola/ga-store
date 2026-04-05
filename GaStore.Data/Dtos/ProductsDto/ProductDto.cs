@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using GaStore.Data.Entities.Products;
 using GaStore.Data.Entities.Users;
+using GaStore.Data.Enums;
 
 namespace GaStore.Data.Dtos.ProductsDto
 {
@@ -14,6 +15,7 @@ namespace GaStore.Data.Dtos.ProductsDto
 	{
 		public Guid? Id { get; set; }
 		public Guid? UserId { get; set; }
+        public Guid? VendorId { get; set; }
 		[Required]
 		[MaxLength(255)]
 		public string Name { get; set; }
@@ -26,6 +28,11 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public int StockQuantity { get; set; }
         public bool IsAvailable { get; set; }
         public bool IsApproved { get; set; } = false;
+        public bool IsPublished { get; set; } = false;
+        public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;
+        public string? ReviewRejectionReason { get; set; }
+        public DateTime? SubmittedForReviewAt { get; set; }
+        public DateTime? ReviewedAt { get; set; }
         public DateTime? DateCreated { get; set; }
 
         public Guid? BrandId { get; set; }
@@ -34,6 +41,7 @@ namespace GaStore.Data.Dtos.ProductsDto
         public Guid? ProductTypeId { get; set; }
         public Guid? ProductSubTypeId { get; set; }
         public Guid? ApprovedBy { get; set; }
+        public Guid? ReviewedByAdminId { get; set; }
         public DateTime? DateApproved { get; set; } = DateTime.Now;
         public List<IFormFile>? imageFiles { get; set; }
         public string[]? ImageUrls { get; set; }
@@ -58,6 +66,7 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public Guid Id { get; set; }
 		public string Name { get; set; }
 		public Guid? UserId { get; set; }
+        public Guid? VendorId { get; set; }
 		public string? Description { get; set; }
 		public string? Highlights { get; set; }
 		public string? Weight { get; set; }
@@ -67,6 +76,9 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public int StockQuantity { get; set; }
 		public bool IsAvailable { get; set; }
         public bool IsApproved { get; set; } = false;
+        public bool IsPublished { get; set; } = false;
+        public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;
+        public string? ReviewRejectionReason { get; set; }
         public Guid? BrandId { get; set; }
         public Guid? CategoryId { get; set; }
         public Guid? SubCategoryId { get; set; }
@@ -75,6 +87,7 @@ namespace GaStore.Data.Dtos.ProductsDto
 
         public DateTime? DateCreated { get; set; }
         public Guid? ApprovedBy { get; set; }
+        public Guid? ReviewedByAdminId { get; set; }
         public DateTime? DateApproved { get; set; } = DateTime.Now;
         public List<IFormFile>? imageFiles { get; set; }
 		public ProductBrandDto Brand { get; set; }

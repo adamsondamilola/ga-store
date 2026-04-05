@@ -9,6 +9,7 @@ using GaStore.Core.Services.Interfaces;
 using GaStore.Data.Dtos.ProductsDto;
 using GaStore.Data.Entities.Products;
 using GaStore.Data.Entities.Users;
+using GaStore.Data.Enums;
 using GaStore.Data.Models;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Models.Database;
@@ -192,11 +193,12 @@ namespace GaStore.Core.Services.Implementations
                 }
 
 
+                query = query.Where(p => p.IsAvailable && p.IsApproved && p.IsPublished && p.ReviewStatus == ProductReviewStatus.Approved);
+
                 var totalRecords = await query.CountAsync();
 
 
                 var products = await query
-                    .Where(p => p.IsAvailable && p.IsApproved)
                     .OrderByDescending(p => p.DateCreated)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
@@ -204,6 +206,8 @@ namespace GaStore.Core.Services.Implementations
                     {
                         DateCreated = p.DateCreated,
                         Id = p.Id,
+                        UserId = p.UserId,
+                        VendorId = p.VendorId,
 //                        Name = p.Name,
                         Name = p.Name+ " - "+p.Brand.Name,
                         Description = p.Description,
@@ -213,11 +217,18 @@ namespace GaStore.Core.Services.Implementations
                         StockQuantity = p.StockQuantity,
                         IsAvailable = p.IsAvailable,
                         IsApproved = p.IsApproved,
+                        IsPublished = p.IsPublished,
+                        ReviewStatus = p.ReviewStatus,
+                        ReviewRejectionReason = p.ReviewRejectionReason,
+                        SubmittedForReviewAt = p.SubmittedForReviewAt,
+                        ReviewedAt = p.ReviewedAt,
                         BrandId = p.BrandId,
                         CategoryId = p.CategoryId,
                         SubCategoryId = p.SubCategoryId,
                         ProductTypeId = p.ProductTypeId,
                         ProductSubTypeId = p.ProductSubTypeId,
+                        ApprovedBy = p.ApprovedBy,
+                        ReviewedByAdminId = p.ReviewedByAdminId,
                         VariantsDto = p.Variants
                             .Where(v => v.ProductId == p.Id).
 							AsEnumerable()
@@ -371,6 +382,8 @@ namespace GaStore.Core.Services.Implementations
                     {
                         DateCreated = p.DateCreated,
                         Id = p.Id,
+                        UserId = p.UserId,
+                        VendorId = p.VendorId,
                         Name = p.Name + " - " + p.Brand.Name,
                         Description = p.Description,
                         Highlights = p.Highlights,
@@ -379,11 +392,18 @@ namespace GaStore.Core.Services.Implementations
                         StockQuantity = p.StockQuantity,
                         IsAvailable = p.IsAvailable,
                         IsApproved = p.IsApproved,
+                        IsPublished = p.IsPublished,
+                        ReviewStatus = p.ReviewStatus,
+                        ReviewRejectionReason = p.ReviewRejectionReason,
+                        SubmittedForReviewAt = p.SubmittedForReviewAt,
+                        ReviewedAt = p.ReviewedAt,
                         BrandId = p.BrandId,
                         CategoryId = p.CategoryId,
                         SubCategoryId = p.SubCategoryId,
                         ProductTypeId = p.ProductTypeId,
                         ProductSubTypeId = p.ProductSubTypeId,
+                        ApprovedBy = p.ApprovedBy,
+                        ReviewedByAdminId = p.ReviewedByAdminId,
                         VariantsDto = p.Variants
                             .Where(v => v.ProductId == p.Id)
                             .Select(v => new ProductVariantDto
@@ -906,6 +926,7 @@ namespace GaStore.Core.Services.Implementations
 					{
 						Id = Guid.NewGuid(),
 						UserId = UserId,
+                        VendorId = UserId,
 						Name = productDto.Name,
 						Description = productDto.Description,
 						Highlights = productDto.Highlights,
@@ -914,6 +935,9 @@ namespace GaStore.Core.Services.Implementations
 						StockQuantity = productDto.StockQuantity,
 						IsAvailable = productDto.IsAvailable,
 						IsApproved = false,
+                        IsPublished = false,
+                        ReviewStatus = ProductReviewStatus.Draft,
+                        ReviewRejectionReason = null,
 						BrandId = productDto.BrandId,
 						CategoryId = productDto.CategoryId,
                         SubCategoryId = productDto.SubCategoryId,
@@ -1128,7 +1152,30 @@ namespace GaStore.Core.Services.Implementations
                 // Return success response
                 response.StatusCode = 201;
 				response.Message = "Product created successfully";
-				response.Data = productDto;
+                response.Data = new ProductDto
+                {
+                    Id = product.Id,
+                    UserId = product.UserId,
+                    VendorId = product.VendorId,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Highlights = product.Highlights,
+                    Weight = product.Weight,
+                    PrimaryColor = product.PrimaryColor,
+                    StockQuantity = product.StockQuantity,
+                    IsAvailable = product.IsAvailable,
+                    IsApproved = product.IsApproved,
+                    IsPublished = product.IsPublished,
+                    ReviewStatus = product.ReviewStatus,
+                    ReviewRejectionReason = product.ReviewRejectionReason,
+                    SubmittedForReviewAt = product.SubmittedForReviewAt,
+                    ReviewedAt = product.ReviewedAt,
+                    BrandId = product.BrandId,
+                    CategoryId = product.CategoryId,
+                    SubCategoryId = product.SubCategoryId,
+                    ProductTypeId = product.ProductTypeId,
+                    ProductSubTypeId = product.ProductSubTypeId
+                };
 
 
 			}
@@ -1317,7 +1364,30 @@ namespace GaStore.Core.Services.Implementations
                 // Return success response
                 response.StatusCode = 200;
 				response.Message = "Product updated successfully";
-				response.Data = productDto;
+                response.Data = new ProductDto
+                {
+                    Id = product.Id,
+                    UserId = product.UserId,
+                    VendorId = product.VendorId,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Highlights = product.Highlights,
+                    Weight = product.Weight,
+                    PrimaryColor = product.PrimaryColor,
+                    StockQuantity = product.StockQuantity,
+                    IsAvailable = product.IsAvailable,
+                    IsApproved = product.IsApproved,
+                    IsPublished = product.IsPublished,
+                    ReviewStatus = product.ReviewStatus,
+                    ReviewRejectionReason = product.ReviewRejectionReason,
+                    SubmittedForReviewAt = product.SubmittedForReviewAt,
+                    ReviewedAt = product.ReviewedAt,
+                    BrandId = product.BrandId,
+                    CategoryId = product.CategoryId,
+                    SubCategoryId = product.SubCategoryId,
+                    ProductTypeId = product.ProductTypeId,
+                    ProductSubTypeId = product.ProductSubTypeId
+                };
 
 
 			}
@@ -1371,11 +1441,19 @@ namespace GaStore.Core.Services.Implementations
 					if (product.IsApproved)
 					{
                         product.ApprovedBy = UserId;
+                        product.ReviewedByAdminId = UserId;
                         product.DateApproved = DateTime.Now;
+                        product.IsPublished = true;
+                        product.ReviewStatus = ProductReviewStatus.Approved;
+                        product.ReviewRejectionReason = null;
+                        product.ReviewedAt = DateTime.UtcNow;
 					}
 					else
 					{
+                        product.IsPublished = false;
+                        product.ReviewStatus = ProductReviewStatus.Rejected;
 						product.DateUpdated = DateTime.Now;
+                        product.ReviewedAt = DateTime.UtcNow;
                     }
 						await _unitOfWork.ProductRepository.Upsert(product);
 					await _unitOfWork.CompletedAsync(UserId);

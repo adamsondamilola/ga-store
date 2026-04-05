@@ -62,6 +62,36 @@ namespace GaStore.Core.Services.Implementations
 			return response;
 		}
 
+        public async Task<User?> GetEntityByIdAsync(Guid userId)
+        {
+            return await _context.Users
+                .Include(u => u.Roles)
+                .Include(u => u.VendorKyc)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<ServiceResponse<User>> UpdateEntityAsync(User user)
+        {
+            var response = new ServiceResponse<User>();
+
+            try
+            {
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+                response.StatusCode = 200;
+                response.Message = "User updated successfully.";
+                response.Data = user;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user entity.");
+                response.StatusCode = 500;
+                response.Message = ErrorMessages.InternalServerError;
+            }
+
+            return response;
+        }
+
 		public async Task<ServiceResponse<User>> UpdateAsync(UserDto user)
 		{
 			var response = new ServiceResponse<User>();
@@ -115,10 +145,11 @@ namespace GaStore.Core.Services.Implementations
 
                     user.IsAdmin = newUser.IsAdmin;
 					user.IsSuperAdmin = newUser.IsSuperAdmin;
+                    user.IsVendor = newUser.IsVendor;
 					_context.Users?.Update(user);
 
                     // Update roles
-					var userRoles = await _context.Roles.Where(ur => ur.UserId == user.Id).ToListAsync();
+					var userRoles = await _context.Roles.Where(ur => ur.UserId == user.Id && ur.Name != "User").ToListAsync();
 					_context.Roles.RemoveRange(userRoles);
 					var rolesToAdd = new List<Role>();
 					if (newUser.IsSuperAdmin)
@@ -128,6 +159,10 @@ namespace GaStore.Core.Services.Implementations
 					if (newUser.IsAdmin)
 					{
 						rolesToAdd.Add(new Role { UserId = user.Id, Name = "Admin", Description = "Admin" });
+                    }
+                    if (newUser.IsVendor)
+                    {
+                        rolesToAdd.Add(new Role { UserId = user.Id, Name = "Vendor", Description = "Marketplace vendor" });
                     }
 					_context.Roles.AddRange(rolesToAdd);
 
@@ -203,6 +238,9 @@ namespace GaStore.Core.Services.Implementations
                         Email = u.Email,
                         IsAdmin = u.IsAdmin,
 						IsSuperAdmin = u.IsSuperAdmin,
+                        IsVendor = u.IsVendor,
+                        KycStatus = u.KycStatus,
+                        CanPost = u.CanPost,
                         IsBlocked = u.IsBlocked,
                         Referrer = u.Referrer,
                         Profile = u.Profile != null ? new UserProfile

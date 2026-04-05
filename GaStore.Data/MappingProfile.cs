@@ -31,6 +31,12 @@ namespace GaStore.Data
 			CreateMap<UserDto, User>();
             CreateMap<CreateUserDto, User>().ReverseMap();
             CreateMap<CreateUserDto, UserDto>().ReverseMap();
+            CreateMap<VendorKyc, VendorKycDto>()
+                .ForMember(dest => dest.VendorName,
+                    opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}".Trim()))
+                .ForMember(dest => dest.VendorEmail,
+                    opt => opt.MapFrom(src => src.User.Email));
+            CreateMap<VendorKycUpsertDto, VendorKyc>();
 
             CreateMap<UserProfile, UserProfileDto>();
 			CreateMap<UserProfileDto, UserProfile>();

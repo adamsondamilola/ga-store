@@ -12,6 +12,7 @@ using GaStore.Data.Entities.System;
 using GaStore.Data.Entities.Users;
 using GaStore.Data.Entities.Wallets;
 using GaStore.Data.Models;
+using GaStore.Data.Enums;
 
 namespace GaStore.Models.Database
 {
@@ -42,6 +43,7 @@ namespace GaStore.Models.Database
         // DBSets
         // ----------------------------
         public DbSet<User> Users { get; set; }
+        public DbSet<VendorKyc> VendorKycs { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<DeliveryAddress> DeliveryAddresses { get; set; }
@@ -125,6 +127,32 @@ namespace GaStore.Models.Database
                 .HasMany(u => u.Roles)
                 .WithMany(r => r.Users)
                 .UsingEntity(j => j.ToTable("UserRoles"));
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.KycStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(KycStatus.NotStarted);
+
+            modelBuilder.Entity<VendorKyc>()
+                .Property(vk => vk.Status)
+                .HasConversion<int>()
+                .HasDefaultValue(KycStatus.NotStarted);
+
+            modelBuilder.Entity<VendorKyc>()
+                .HasIndex(vk => vk.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<VendorKyc>()
+                .HasOne(vk => vk.User)
+                .WithOne(u => u.VendorKyc)
+                .HasForeignKey<VendorKyc>(vk => vk.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorKyc>()
+                .HasOne(vk => vk.ReviewedByAdmin)
+                .WithMany(u => u.ReviewedVendorKycs)
+                .HasForeignKey(vk => vk.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ----------------------------
             // REFERRALS & RELATED
@@ -377,6 +405,23 @@ namespace GaStore.Models.Database
             // ----------------------------
             // PRODUCT RELATIONSHIPS
             // ----------------------------
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.ReviewStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(ProductReviewStatus.Draft);
+
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Vendor)
+                .WithMany(u => u.VendorProducts)
+                .HasForeignKey(p => p.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.ReviewedByAdmin)
+                .WithMany(u => u.ModeratedProducts)
+                .HasForeignKey(p => p.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Product>()
         .HasOne(p => p.Category)

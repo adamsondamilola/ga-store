@@ -16,6 +16,7 @@ using GaStore.Infrastructure.Repository.GenericRepository;
 namespace GaStore.Infrastructure.Repository.Interfaces
 {
 	public interface IUserRepository : IGenericRepository<User> { }
+    public interface IVendorKycRepository : IGenericRepository<VendorKyc> { }
 	public interface IRoleRepository : IGenericRepository<Role> { }
 	public interface IUserProfileRepository : IGenericRepository<UserProfile> { }
 	public interface IDeliveryAddressRepository : IGenericRepository<DeliveryAddress> { }

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using GaStore.Data.Entities.Users;
+using GaStore.Data.Enums;
 
 namespace GaStore.Data.Entities.Products
 {
@@ -12,6 +14,8 @@ namespace GaStore.Data.Entities.Products
 	{
 		[Required]
         public Guid UserId { get; set; }
+        [Required]
+        public Guid VendorId { get; set; }
         [Required]
 		[MaxLength(255)]
 		public string Name { get; set; }
@@ -23,6 +27,11 @@ namespace GaStore.Data.Entities.Products
 		public int StockQuantity { get; set; }
         public bool IsAvailable { get; set; }
 		public bool IsApproved { get; set; } = false;
+        public bool IsPublished { get; set; } = false;
+        public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;
+        public string? ReviewRejectionReason { get; set; }
+        public DateTime? SubmittedForReviewAt { get; set; }
+        public DateTime? ReviewedAt { get; set; }
 
         public virtual ICollection<ProductVariant>? Variants { get; set; }
 
@@ -34,6 +43,7 @@ namespace GaStore.Data.Entities.Products
         public Guid? ProductTypeId { get; set; }
         public Guid? ProductSubTypeId { get; set; }
         public Guid? ApprovedBy { get; set; }
+        public Guid? ReviewedByAdminId { get; set; }
         public DateTime? DateApproved { get; set; } = DateTime.UtcNow;
         public virtual Category? Category { get; set; }
         public virtual SubCategory? SubCategory { get; set; }
@@ -46,6 +56,8 @@ namespace GaStore.Data.Entities.Products
 		public virtual ICollection<LimitedOfferProduct>? LimitedOfferEntries { get; set; } = new List<LimitedOfferProduct>();
 		public virtual ProductSpecification? Specifications { get; set; }
 		public ICollection<ProductReview> Reviews { get; set; } = new List<ProductReview>();
+        public virtual User Vendor { get; set; } = null!;
+        public virtual User? ReviewedByAdmin { get; set; }
 
 		//public virtual ICollection<ProductSpecification>? Specifications { get; set; } = new List<ProductSpecification>();
 	}

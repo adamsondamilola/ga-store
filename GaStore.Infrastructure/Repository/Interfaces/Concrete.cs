@@ -21,6 +21,11 @@ namespace GaStore.Infrastructure.Repository.Interfaces
 		public UserRepository(DatabaseContext context) : base(context) { }
 	}
 
+    public class VendorKycRepository : GenericRepository<VendorKyc>, IVendorKycRepository
+    {
+        public VendorKycRepository(DatabaseContext context) : base(context) { }
+    }
+
 	public class RoleRepository : GenericRepository<Role>, IRoleRepository
 	{
 		public RoleRepository(DatabaseContext context) : base(context) { }

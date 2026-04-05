@@ -42,6 +42,8 @@ const endpointsPath = {
     coupon: 'Coupon',
     tag: 'Tag',
     cart: 'Cart',
+    vendor: 'vendor',
+    adminModeration: 'admin',
 
 }
 export default endpointsPath
