@@ -126,7 +126,7 @@ const Wallet = () => {
         />
       </div>
 
-      <DashboardPanel>
+      {/* <DashboardPanel>
         <div className="space-y-3">
           <div className="flex items-center justify-between border-b border-[#efe6de] pb-3">
             <span className="text-sm font-medium text-gray-500">Commission Available</span>
@@ -137,7 +137,7 @@ const Wallet = () => {
             <span className="text-base font-semibold text-gray-950">{formatNumberToCurrency(wallet.withdrawn)}</span>
           </div>
         </div>
-      </DashboardPanel>
+      </DashboardPanel>*/}
     </DashboardPageShell>
   );
 };

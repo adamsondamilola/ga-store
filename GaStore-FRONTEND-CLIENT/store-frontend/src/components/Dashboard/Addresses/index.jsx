@@ -1,125 +1,118 @@
-'use client';
-import endpointsPath from '@/constants/EndpointsPath';
-import nigeriaStates from '@/constants/NigeriaStates'; // Import the static data
-import formatNumberToCurrency from '@/utils/numberToMoney';
-import requestHandler from '@/utils/requestHandler';
-import { Wallet, Add, CheckCircle, Edit, Cancel, LocalShipping, Check } from '@mui/icons-material';
-import { useEffect, useState, useMemo } from 'react';
-import { FiCreditCard, FiDollarSign, FiSend, FiMapPin, FiTruck, FiChevronDown, FiHome, FiNavigation } from 'react-icons/fi';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
-import AppStrings from '@/constants/Strings';
-import Spinner from '@/utils/spinner';
-import { useFlutterwave, closePaymentModal } from 'flutterwave-react-v3';
-import Link from 'next/link';
-import { DashboardPageShell, DashboardPanel } from '../PageShell';
+"use client";
+
+import endpointsPath from "@/constants/EndpointsPath";
+import nigeriaStates from "@/constants/NigeriaStates";
+import AppStrings from "@/constants/Strings";
+import requestHandler from "@/utils/requestHandler";
+import formatNumberToCurrency from "@/utils/numberToMoney";
+import { Add, CheckCircle, DeleteOutline, Edit, Refresh } from "@mui/icons-material";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import {
+  FiHome,
+  FiMapPin,
+  FiNavigation,
+  FiPhone,
+  FiPlus,
+  FiStar,
+  FiTruck,
+  FiUser,
+} from "react-icons/fi";
+import { DashboardPageShell, DashboardPanel, DashboardStatCard } from "../PageShell";
+
+const emptyAddress = {
+  fullName: "",
+  phoneNumber: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "Nigeria",
+};
+
+const formFieldClassName =
+  "w-full rounded-2xl border border-[#e8ded6] bg-[#fcfaf8] px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#f3c9a7] focus:bg-white";
 
 export default function Addresses() {
-  const router = useRouter();
-  const [paymentMethod, setPaymentMethod] = useState('credit-card');
-  const [cartItems, setCartItems] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [deliveryAddresses, setDeliveryAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [orderNote, setOrderNote] = useState('');
+  const [newAddress, setNewAddress] = useState(emptyAddress);
   const [showAddAddress, setShowAddAddress] = useState(false);
-  const [editableAddress, setEditableAddress] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
-  const [deliveryFee, setDeliveryFee] = useState(0.00);
-  const [deliveryFee2, setDeliveryFee2] = useState(0.00); //pickup location delivery fee
-  const [isDoorStepDelivery, setIsDoorStepDelivery] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [pickupAddress, setPickupAddress] = useState(null);
-  const [pickupAddressPhone, setPickupAddressPhone] = useState(null);
-  const [newAddress, setNewAddress] = useState({
-    fullName: '',
-    phoneNumber: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'Nigeria'
-  });
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [hideAddresses, setHideAddresses] = useState(false);
-  const limit = 10;
-  const [vat, setVat] = useState(0.00);
-  const [isVatAvailable, setIsVatAvailable] = useState(false);
-
-  // Get available cities based on selected state
   const availableCities = useMemo(() => {
-    if (!newAddress.state) return [];
+    if (!newAddress.state) {
+      return [];
+    }
+
     const stateData = nigeriaStates.find(
-      (s) => s.name.toLowerCase() === newAddress.state.toLowerCase()
+      (state) => state.name.toLowerCase() === newAddress.state.toLowerCase()
     );
+
     return stateData ? stateData.subdivision : [];
   }, [newAddress.state]);
 
-  const fetchVats = async () => {
-    setLoading(true);
+  const hasRequiredFields =
+    Boolean(newAddress.fullName) &&
+    Boolean(newAddress.phoneNumber) &&
+    Boolean(newAddress.address) &&
+    Boolean(newAddress.state) &&
+    Boolean(newAddress.city);
+
+  const fetchUserAddresses = async (showToast = false) => {
     try {
-      let url = `${endpointsPath.vat}?pageNumber=${page}&pageSize=${limit}`;    
-      const response = await requestHandler.get(url, true);
-      if (response.statusCode === 200 && response.result?.data) {
-        setVat(response.result.data[0].percentage || 7.5);
-        setIsVatAvailable(response.result.data[0].isActive || false);
-        setTotalPages(response.result.totalPages || 1);
+      setLoading(true);
+      setRefreshing(true);
+
+      const resp = await requestHandler.get(`${endpointsPath.userDeliveryAddress}`, true);
+      if (resp.statusCode === 200) {
+        const addresses = resp.result?.data || [];
+        setDeliveryAddresses(addresses);
+
+        const primary = addresses.find((address) => address.isPrimary);
+        const nextSelectedAddress =
+          addresses.find((address) => address.id === selectedAddress?.id) ||
+          primary ||
+          addresses[0] ||
+          null;
+
+        setSelectedAddress(nextSelectedAddress);
+
+        if (showToast) {
+          toast.success("Addresses refreshed");
+        }
       }
     } catch (error) {
-      console.error('Fetch failed:', error);
-      toast.error('Failed to load vat');
+      console.error("Error fetching addresses:", error);
+      toast.error("Failed to load addresses");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
- 
+
   const fetchDeliveryFee = async () => {
-    setLoading(true);
+    if (!selectedAddress?.state || !selectedAddress?.city) {
+      setDeliveryFee(0);
+      setPickupAddress(null);
+      return;
+    }
+
     try {
-      let url = `${endpointsPath.deliveryLocation}/get-by-state-city?State=${selectedAddress?.state}&City=${selectedAddress?.city}`;    
+      const url = `${endpointsPath.deliveryLocation}/get-by-state-city?State=${selectedAddress.state}&City=${selectedAddress.city}`;
       const response = await requestHandler.get(url, true);
+
       if (response.statusCode === 200 && response.result?.data) {
         const data = response.result.data;
         setDeliveryFee(data.doorDeliveryAmount || 0);
-        setDeliveryFee2(data.pickupDeliveryAmount || 0);
-        setPickupAddress(data.pickupAddress);
-        setPickupAddressPhone(data.phoneNumber);
+        setPickupAddress(data.pickupAddress || null);
       }
     } catch (error) {
-      console.error('Delivery fee fetch failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDeliveryFee(); 
-  }, [selectedAddress, isDoorStepDelivery]);
-
-  useEffect(() => {
-    fetchVats(); 
-  }, []);
-
-  const fetchUserAddresses = async () => {
-    try {
-      setLoading(true);
-      const resp = await requestHandler.get(`${endpointsPath.userDeliveryAddress}`, true);
-      if (resp.statusCode === 200) {
-        setIsLoggedIn(true);
-        setDeliveryAddresses(resp.result.data || []);
-        // Select the primary address by default if available
-        const primary = resp.result.data.find(addr => addr.isPrimary);
-        setSelectedAddress(primary || resp.result.data[0] || null);
-      }
-    } catch (error) {
-      console.error('Error fetching addresses:', error);
-      toast.error('Failed to load addresses');
-    } finally {
-      setLoading(false);
+      console.error("Delivery fee fetch failed:", error);
     }
   };
 
@@ -127,37 +120,30 @@ export default function Addresses() {
     fetchUserAddresses();
   }, []);
 
+  useEffect(() => {
+    fetchDeliveryFee();
+  }, [selectedAddress]);
+
   const resetForm = () => {
-    setNewAddress({
-      fullName: '',
-      phoneNumber: '',
-      address: '',
-      city: '',
-      state: '',
-      country: 'Nigeria'
-    });
-    setEditableAddress(null);
+    setNewAddress(emptyAddress);
     setIsEditing(false);
   };
 
+  const closeForm = () => {
+    setShowAddAddress(false);
+    resetForm();
+  };
+
   const handleAddAddress = async () => {
+    if (!hasRequiredFields) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Validate required fields
-      if (!newAddress.fullName || !newAddress.phoneNumber || !newAddress.address || !newAddress.state || !newAddress.city) {
-        toast.error('Please fill all required fields');
-        setIsLoading(false);
-        return;
-      }
-
-      const endpoint = isEditing && editableAddress?.id 
-        ? `${endpointsPath.userDeliveryAddress}`
-        : endpointsPath.userDeliveryAddress;
-
-      const method = isEditing && editableAddress?.id ? 'POST' : 'POST';
-
-      const response = await requestHandler[method.toLowerCase()](
-        endpoint,
+      const response = await requestHandler.post(
+        endpointsPath.userDeliveryAddress,
         newAddress,
         true
       );
@@ -165,13 +151,12 @@ export default function Addresses() {
       if (response.statusCode < 202) {
         toast.success(isEditing ? "Address updated successfully" : "Address added successfully");
         await fetchUserAddresses();
-        resetForm();
-        setShowAddAddress(false);
+        closeForm();
       } else {
         toast.error(response.result?.message || "Failed to save address");
       }
     } catch (error) {
-      console.error('Failed to save address:', error);
+      console.error("Failed to save address:", error);
       toast.error(AppStrings.internalServerError);
     } finally {
       setIsLoading(false);
@@ -179,7 +164,9 @@ export default function Addresses() {
   };
 
   const handleDeleteAddress = async (id) => {
-    if (!confirm("Are you sure you want to delete this address?")) return;
+    if (!confirm("Are you sure you want to delete this address?")) {
+      return;
+    }
 
     try {
       const response = await requestHandler.deleteReq(
@@ -189,11 +176,13 @@ export default function Addresses() {
 
       if (response.statusCode === 200) {
         toast.success("Address deleted successfully");
-        const updatedAddresses = deliveryAddresses.filter(addr => addr.id !== id);
+
+        const updatedAddresses = deliveryAddresses.filter((address) => address.id !== id);
         setDeliveryAddresses(updatedAddresses);
 
         if (selectedAddress?.id === id) {
-          setSelectedAddress(updatedAddresses[0] || null);
+          const primary = updatedAddresses.find((address) => address.isPrimary);
+          setSelectedAddress(primary || updatedAddresses[0] || null);
         }
       } else {
         toast.error(response.message || "Failed to delete address");
@@ -207,110 +196,136 @@ export default function Addresses() {
   const updatePrimaryAddress = async (addressId) => {
     try {
       const response = await requestHandler.put(
-        `${endpointsPath.userDeliveryAddress}/${addressId}/set-primary`, 
-        {}, 
+        `${endpointsPath.userDeliveryAddress}/${addressId}/set-primary`,
+        {},
         true
       );
+
       if (response.statusCode === 200) {
         await fetchUserAddresses();
-        toast.success('Primary address updated');
+        toast.success("Primary address updated");
       }
     } catch (error) {
-      console.error('Failed to update primary address:', error);
+      console.error("Failed to update primary address:", error);
     }
   };
 
-  // Address Form Component
-  const AddAddressForm = () => (
-    <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-gray-50 rounded-xl border border-blue-100">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <div className="p-2 bg-blue-100 rounded-lg mr-3">
-            <FiHome className="text-blue-600" size={20} />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-800">
-            {isEditing ? " Edit Address" : " Add New Address"}
-          </h3>
+  const beginCreateAddress = () => {
+    resetForm();
+    setShowAddAddress(true);
+  };
+
+  const beginEditAddress = (address) => {
+    setNewAddress({
+      ...address,
+      country: address.country || "Nigeria",
+    });
+    setIsEditing(true);
+    setShowAddAddress(true);
+  };
+
+  const stats = [
+    {
+      label: "Saved addresses",
+      value: deliveryAddresses.length,
+      note: deliveryAddresses.length === 1 ? "One location ready" : "Delivery locations on file",
+      icon: FiMapPin,
+      tone: "bg-[linear-gradient(135deg,#fff1e5,#fffaf5)] text-gray-950",
+    },
+    {
+      label: "Primary city",
+      value: selectedAddress?.city || "Not set",
+      note: selectedAddress ? selectedAddress.state : "Choose an address to highlight",
+      icon: FiStar,
+      tone: "bg-white text-gray-950",
+    },
+    {
+      label: "Delivery fee",
+      value: selectedAddress ? formatNumberToCurrency(deliveryFee || 0) : "Unavailable",
+      note: pickupAddress || "Shown for the selected address",
+      icon: FiTruck,
+      tone: "bg-[#1f2937] text-white",
+    },
+  ];
+
+  const renderAddressForm = () => (
+    <DashboardPanel className="h-fit">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
+            {isEditing ? "Edit Address" : "New Address"}
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-gray-950">
+            {isEditing ? "Update delivery details" : "Add a delivery location"}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Save a clean, complete address so checkout and delivery estimates stay accurate.
+          </p>
         </div>
-        {selectedAddress && (
-          <button
-            onClick={() => {
-              setShowAddAddress(false);
-              resetForm();
-            }}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <Cancel />
-          </button>
-        )}
+
+        <button
+          type="button"
+          onClick={closeForm}
+          className="rounded-full border border-[#e8ded6] px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-[#fcfaf8]"
+        >
+          Cancel
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {/* Name and Phone */}
-        <div className="grid md:grid-cols-2 gap-4">
+      <div className="mt-6 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name <span className="text-red-500">*</span>
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Full Name</label>
             <input
               type="text"
               placeholder="John Doe"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              className={formFieldClassName}
               value={newAddress.fullName}
               onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })}
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number <span className="text-red-500">*</span>
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Phone Number</label>
             <input
               type="text"
               placeholder="08012345678"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              className={formFieldClassName}
               value={newAddress.phoneNumber}
               onChange={(e) => setNewAddress({ ...newAddress, phoneNumber: e.target.value })}
             />
           </div>
         </div>
 
-        {/* Street Address */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Street Address <span className="text-red-500">*</span>
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Street Address</label>
           <input
             type="text"
             placeholder="123 Main Street, Apartment 4B"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+            className={formFieldClassName}
             value={newAddress.address}
             onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
           />
         </div>
 
-        {/* State and City */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              State <span className="text-red-500">*</span>
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">State</label>
             <select
               value={newAddress.state}
               onChange={(e) => {
-                const newState = e.target.value;
+                const state = e.target.value;
                 setNewAddress({
                   ...newAddress,
-                  state: newState,
-                  city: "" // Reset city when state changes
+                  state,
+                  city: "",
                 });
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-              required
+              className={formFieldClassName}
             >
-              <option value="">Select State</option>
-              {nigeriaStates.map((state, index) => (
-                <option key={index} value={state.name}>
+              <option value="">Select state</option>
+              {nigeriaStates.map((state) => (
+                <option key={state.name} value={state.name}>
                   {state.name}
                 </option>
               ))}
@@ -318,19 +333,16 @@ export default function Addresses() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              City / LGA <span className="text-red-500">*</span>
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">City / LGA</label>
             <select
               value={newAddress.city}
               onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              className={formFieldClassName}
               disabled={!newAddress.state}
-              required
             >
-              <option value="">Select City</option>
-              {availableCities.map((city, index) => (
-                <option key={index} value={city}>
+              <option value="">Select city</option>
+              {availableCities.map((city) => (
+                <option key={city} value={city}>
                   {city}
                 </option>
               ))}
@@ -338,269 +350,306 @@ export default function Addresses() {
           </div>
         </div>
 
-        {/* Country (Auto-filled) */}
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">Country:</span> Nigeria
-          </p>
+        <div className="rounded-[24px] border border-[#f0e6dc] bg-[#fcfaf8] px-4 py-3 text-sm text-gray-600">
+          <span className="font-medium text-gray-900">Country:</span> Nigeria
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex space-x-3 pt-4">
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <button
+            type="button"
             onClick={handleAddAddress}
-            disabled={!newAddress.fullName || !newAddress.phoneNumber || !newAddress.address || !newAddress.state || !newAddress.city || isLoading}
-            className={`flex-1 py-3 rounded-lg font-medium transition-all ${!newAddress.fullName || !newAddress.phoneNumber || !newAddress.address || !newAddress.state || !newAddress.city || isLoading
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
-              }`}
+            disabled={!hasRequiredFields || isLoading}
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition ${
+              !hasRequiredFields || isLoading
+                ? "cursor-not-allowed bg-gray-200 text-gray-500"
+                : "bg-gray-950 text-white hover:bg-black"
+            }`}
           >
             {isLoading ? (
-              <span className="flex items-center justify-center">
-                <Spinner loading={true} size="small" />
-                <span className="ml-2">Saving...</span>
-              </span>
-            ) : isEditing ? (
-              "Update Address"
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
             ) : (
-              "Save Address"
+              <FiPlus />
             )}
+            {isEditing ? "Update address" : "Save address"}
           </button>
-          
+
           <button
-            onClick={() => {
-              setShowAddAddress(false);
-              resetForm();
-            }}
-            className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            type="button"
+            onClick={closeForm}
+            className="inline-flex items-center justify-center rounded-full border border-[#e8ded6] px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#fcfaf8]"
           >
             Cancel
           </button>
         </div>
       </div>
-    </div>
+    </DashboardPanel>
   );
 
   return (
     <DashboardPageShell
       eyebrow="Addresses"
-      title="Delivery Addresses"
-      description="Manage your saved delivery locations and choose the right address faster."
+      title="Delivery addresses"
+      description="Manage the places you ship to, update your primary delivery point, and keep checkout details consistent."
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => fetchUserAddresses(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            <Refresh className={refreshing ? "animate-spin" : ""} fontSize="small" />
+            Refresh
+          </button>
+
+          <button
+            type="button"
+            onClick={beginCreateAddress}
+            className="inline-flex items-center gap-2 rounded-full bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+          >
+            <Add fontSize="small" />
+            Add address
+          </button>
+        </>
+      }
     >
-      <div className="max-w-4xl">
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {stats.map((card) => (
+            <DashboardStatCard
+              key={card.label}
+              label={card.label}
+              value={card.value}
+              note={card.note}
+              icon={card.icon}
+              tone={card.tone}
+            />
+          ))}
+        </div>
 
-        {/* Main Address Card */}
-        <DashboardPanel className="overflow-hidden p-0">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <div className="p-2 bg-blue-50 rounded-lg mr-3">
-                    <FiNavigation className="text-blue-600" size={20} />
-                  </div>
-                  Saved Addresses
-                </h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  Select an address for delivery or add a new one
-                </p>
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+          <DashboardPanel className="overflow-hidden p-0">
+            <div className="border-b border-[#f1e8df] px-5 py-5 md:px-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
+                    Saved Locations
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-gray-950">Your address book</h2>
+                  <p className="mt-2 text-sm text-gray-600">
+                    Choose a primary address or keep multiple destinations ready for future orders.
+                  </p>
+                </div>
+
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#fff6ef] px-4 py-2 text-sm font-medium text-[#c2410c]">
+                  <FiNavigation />
+                  {selectedAddress ? "Primary selected" : "No primary address"}
+                </div>
               </div>
-
             </div>
-          </div>
 
-          {/* Address List */}
-          {!hideAddresses && (
-            <div className="p-6">
-              {deliveryAddresses.length > 0 ? (
-                <div className="space-y-4 mb-6">
-                  {deliveryAddresses.map((address) => (
-                    <div
-                      key={address.id}
-                      className={`p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
-                        selectedAddress?.id === address.id
-                          ? "border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md"
-                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50 hover:shadow-sm"
-                      }`}
-                      onClick={() => {
-                        setSelectedAddress(address);
-                        updatePrimaryAddress(address.id);
-                      }}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="font-bold text-gray-900 text-lg">
-                              {address.fullName}
-                            </h3>
-                            {address.isPrimary && (
-                              <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                <CheckCircle fontSize="small" className="mr-1" />
-                                Primary
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <p className="text-gray-700 flex items-start">
-                              <span className="font-medium text-gray-900 mr-2">📍</span>
-                              {address.address}, {address.city}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center">
-                              <span className="font-medium mr-2">State:</span>
-                              {address.state}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center">
-                              <span className="font-medium mr-2">Country:</span>
-                              {address.country}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center">
-                              <span className="font-medium mr-2">📞</span>
-                              {address.phoneNumber}
-                            </p>
-                          </div>
+            <div className="p-5 md:p-6">
+              {loading ? (
+                <div className="flex min-h-[260px] items-center justify-center">
+                  <div className="inline-flex items-center gap-3 rounded-full bg-[#fcfaf8] px-4 py-3 text-sm font-medium text-gray-600">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d6c3b2] border-t-[#c2410c]" />
+                    Loading addresses
+                  </div>
+                </div>
+              ) : deliveryAddresses.length > 0 ? (
+                <div className="space-y-4">
+                  {deliveryAddresses.map((address) => {
+                    const isSelected = selectedAddress?.id === address.id;
 
-                          {/* Delivery Fee Info */}
-                          {/*selectedAddress?.id === address.id && (
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center text-sm">
-                                  <FiTruck className="text-gray-500 mr-2" />
-                                  <span className="text-gray-700">Estimated Delivery Fee:</span>
-                                </div>
-                                <span className="font-bold text-blue-600">
-                                  ₦{deliveryFee.toLocaleString()}
+                    return (
+                      <button
+                        key={address.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddress(address);
+                          updatePrimaryAddress(address.id);
+                        }}
+                        className={`w-full rounded-[28px] border px-5 py-5 text-left transition ${
+                          isSelected
+                            ? "border-[#f3c9a7] bg-[linear-gradient(135deg,#fff7f1,#fffdf9)] shadow-[0_16px_40px_rgba(240,108,35,0.10)]"
+                            : "border-[#ece4db] bg-white hover:border-[#f0dacc] hover:bg-[#fcfaf8]"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="space-y-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1e5] text-[#c2410c]">
+                                <FiHome />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-950">{address.fullName}</h3>
+                                <p className="text-sm text-gray-500">
+                                  {address.city}, {address.state}
+                                </p>
+                              </div>
+                              {address.isPrimary ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf3] px-3 py-1 text-xs font-semibold text-[#047857]">
+                                  <CheckCircle fontSize="inherit" />
+                                  Primary
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div className="grid gap-3 text-sm text-gray-600 md:grid-cols-2">
+                              <div className="flex items-start gap-3 rounded-2xl bg-[#fcfaf8] px-4 py-3">
+                                <FiMapPin className="mt-0.5 text-[#c2410c]" />
+                                <span>{address.address}</span>
+                              </div>
+                              <div className="flex items-start gap-3 rounded-2xl bg-[#fcfaf8] px-4 py-3">
+                                <FiPhone className="mt-0.5 text-[#c2410c]" />
+                                <span>{address.phoneNumber}</span>
+                              </div>
+                              <div className="flex items-start gap-3 rounded-2xl bg-[#fcfaf8] px-4 py-3">
+                                <FiNavigation className="mt-0.5 text-[#c2410c]" />
+                                <span>
+                                  {address.city}, {address.state}
                                 </span>
                               </div>
+                              <div className="flex items-start gap-3 rounded-2xl bg-[#fcfaf8] px-4 py-3">
+                                <FiUser className="mt-0.5 text-[#c2410c]" />
+                                <span>{address.country || "Nigeria"}</span>
+                              </div>
                             </div>
-                          )*/}
-                        </div>
+                          </div>
 
-                        <div className="flex space-x-2 ml-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditableAddress(address);
-                              setNewAddress({
-                                ...address,
-                                country: address.country || 'Nigeria'
-                              });
-                              setIsEditing(true);
-                              setShowAddAddress(true);
-                            }}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit address"
-                          >
-                            <Edit fontSize="small" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteAddress(address.id);
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete address"
-                          >
-                            <Cancel fontSize="small" />
-                          </button>
+                          <div className="flex items-center gap-2 self-start">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                beginEditAddress(address);
+                              }}
+                              className="inline-flex items-center gap-2 rounded-full border border-[#e8ded6] bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-[#fcfaf8]"
+                            >
+                              <Edit fontSize="small" />
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteAddress(address.id);
+                              }}
+                              className="inline-flex items-center gap-2 rounded-full border border-[#f6d2d2] bg-[#fff5f5] px-4 py-2 text-sm font-medium text-[#b91c1c] transition hover:bg-[#feecec]"
+                            >
+                              <DeleteOutline fontSize="small" />
+                              Delete
+                            </button>
+                          </div>
                         </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[28px] border border-dashed border-[#e6d8cb] bg-[#fcfaf8] px-6 py-12 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-[#c2410c] shadow-sm">
+                    <FiMapPin size={26} />
+                  </div>
+                  <h3 className="mt-5 text-xl font-semibold text-gray-950">No delivery addresses yet</h3>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
+                    Add your first delivery location to speed up checkout and get accurate shipping details.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={beginCreateAddress}
+                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black"
+                  >
+                    <FiPlus />
+                    Add your first address
+                  </button>
+                </div>
+              )}
+            </div>
+          </DashboardPanel>
+
+          {showAddAddress ? (
+            renderAddressForm()
+          ) : (
+            <DashboardPanel className="h-fit">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
+                Selected Address
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-gray-950">
+                {selectedAddress ? "Delivery summary" : "Ready when you are"}
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                {selectedAddress
+                  ? "Review the currently selected address and add another one anytime."
+                  : "Create a saved location to start building your address book."}
+              </p>
+
+              {selectedAddress ? (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-[26px] border border-[#f0dacc] bg-[linear-gradient(135deg,#fff9f5,#fff2e8)] p-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#c2410c] shadow-sm">
+                        <FiNavigation />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-950">{selectedAddress.fullName}</h3>
+                        <p className="text-sm text-gray-600">
+                          {selectedAddress.address}, {selectedAddress.city}
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-2xl border border-[#ece4db] bg-[#fcfaf8] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                        Phone
+                      </p>
+                      <p className="mt-2 text-sm text-gray-700">{selectedAddress.phoneNumber}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#ece4db] bg-[#fcfaf8] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                        Delivery Fee
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-gray-900">
+                        {formatNumberToCurrency(deliveryFee || 0)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#ece4db] bg-[#fcfaf8] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                        Pickup Address
+                      </p>
+                      <p className="mt-2 text-sm text-gray-700">
+                        {pickupAddress || "Pickup point will appear when available for this location."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => beginEditAddress(selectedAddress)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-[#e8ded6] px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-[#fcfaf8]"
+                  >
+                    <Edit fontSize="small" />
+                    Edit selected address
+                  </button>
                 </div>
               ) : (
-                <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-xl mb-6 bg-gray-50">
-                  <div className="p-4 bg-white rounded-full inline-flex mb-4">
-                    <FiMapPin className="text-gray-400" size={36} />
+                <div className="mt-6 rounded-[26px] border border-dashed border-[#e6d8cb] bg-[#fcfaf8] px-5 py-10 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#c2410c] shadow-sm">
+                    <FiHome size={24} />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    No delivery addresses saved
-                  </h3>
-                  <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                    Add your first address to start receiving deliveries. We'll use this for shipping and delivery estimates.
+                  <p className="mt-4 text-sm text-gray-600">
+                    Your selected address details will appear here once you save one.
                   </p>
                 </div>
               )}
-
-              {/* Add Address Button or Form */}
-              {showAddAddress ? (
-                AddAddressForm()
-              ) : (
-                <button
-                  onClick={() => {
-                    resetForm();
-                    setShowAddAddress(true);
-                  }}
-                  className="mt-6 w-full py-4 border-2 border-dashed border-blue-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 flex items-center justify-center transition-all duration-300 group"
-                >
-                  <div className="p-2 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition-colors">
-                    <Add className="text-blue-600" />
-                  </div>
-                  <span className="text-blue-600 font-medium group-hover:text-blue-800">
-                    Add New Address
-                  </span>
-                </button>
-              )}
-            </div>
+            </DashboardPanel>
           )}
-
-          {/* Currently Selected Address Summary */}
-          {/*selectedAddress && !hideAddresses && (
-            <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg mr-3">
-                    <Check className="text-green-600" size={20} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Currently Selected Address</h4>
-                    <p className="text-sm text-gray-600">
-                      {selectedAddress.address}, {selectedAddress.city}, {selectedAddress.state}
-                    </p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  Ready for Delivery
-                </span>
-              </div>
-            </div>
-          )*/}
-        </DashboardPanel>
-
-        {/* Delivery Information Card */}
-        {/*selectedAddress && !hideAddresses && (
-          <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FiTruck className="mr-2 text-blue-600" />
-              Delivery Information
-            </h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Doorstep Delivery</h4>
-                <p className="text-2xl font-bold text-blue-600 mb-2">
-                  ₦{deliveryFee.toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Delivered directly to your address
-                </p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Pickup Location</h4>
-                <p className="text-2xl font-bold text-gray-600 mb-2">
-                  ₦{deliveryFee2.toLocaleString()}
-                </p>
-                {pickupAddress && (
-                  <p className="text-sm text-gray-600">
-                    {pickupAddress}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )*/}
-
+        </div>
       </div>
-      <Spinner loading={loading} />
     </DashboardPageShell>
   );
 }

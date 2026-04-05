@@ -8,16 +8,27 @@ import { stringToSLug } from "@/utils/stringToSlug";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { FiChevronDown, FiMail } from "react-icons/fi";
+import { FiChevronDown, FiMail, FiArrowRight } from "react-icons/fi";
 
 const heroImage =
   "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=80";
 
-function SectionHeading({ title, subtitle }) {
+function SectionHeading({ title, subtitle, actionLabel, actionHref }) {
   return (
-    <div className="mb-6 text-center md:mb-8">
-      <h2 className="text-[1.85rem] font-extrabold tracking-tight text-[#1f2937] md:text-[2.15rem]">{title}</h2>
-      <p className="mt-1 text-sm text-[#6b7280] md:text-base">{subtitle}</p>
+    <div className="mb-6 flex flex-col gap-4 text-center md:mb-8 md:flex-row md:items-end md:justify-between md:text-left">
+      <div className="flex-1">
+        <h2 className="text-[1.85rem] font-extrabold tracking-tight text-[#1f2937] md:text-[2.15rem]">{title}</h2>
+        <p className="mt-1 text-sm text-[#6b7280] md:text-base">{subtitle}</p>
+      </div>
+      {actionLabel && actionHref ? (
+        <Link
+          href={actionHref}
+          className="inline-flex items-center justify-center gap-2 self-center rounded-full border border-[#d9e2ec] bg-[#f8fafc] px-5 py-2.5 text-sm font-semibold text-[#0f172a] transition hover:border-[#c4d3e3] hover:bg-white md:self-auto"
+        >
+          {actionLabel}
+          <FiArrowRight size={16} />
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -38,8 +49,8 @@ export default function PremiumLandingPage() {
         const [sliderResponse, categoryResponse, featuredResponse, arrivalsResponse, limitedOfferResponse] = await Promise.all([
           requestHandler.get(`${endpointsPath.banner}?pageNumber=1&pageSize=1&type=Slider`),
           requestHandler.get(`${endpointsPath.category}?pageNumber=1&pageSize=6`),
-          requestHandler.get(`${endpointsPath.featuredProduct}?pageNumber=1&pageSize=4`),
-          requestHandler.get(`${endpointsPath.product}?pageNumber=1&pageSize=4`),
+          requestHandler.get(`${endpointsPath.featuredProduct}?pageNumber=1&pageSize=8`),
+          requestHandler.get(`${endpointsPath.product}?pageNumber=1&pageSize=8`),
           requestHandler.get(`${endpointsPath.limitedOffer}/active-homepage`),
         ]);
 
@@ -176,8 +187,13 @@ export default function PremiumLandingPage() {
       </section>
 
       <section className="rounded-[24px] bg-white px-4 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 md:px-6 md:py-8">
-        <SectionHeading title="Featured Products" subtitle="Popular Picks for You" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SectionHeading
+          title="Featured Products"
+          subtitle="Popular Picks for You"
+          actionLabel="See more"
+          actionHref="/product/featured"
+        />
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {featuredProducts.map((item) => (
             <StoreProductCard key={item?.product?.id || item?.id} product={item} featured />
           ))}
@@ -185,8 +201,13 @@ export default function PremiumLandingPage() {
       </section>
 
       <section className="rounded-[24px] bg-white px-4 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 md:px-6 md:py-8">
-        <SectionHeading title="New Arrivals" subtitle="Fresh products added this week" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <SectionHeading
+          title="New Arrivals"
+          subtitle="Fresh products added this week"
+          actionLabel="See more"
+          actionHref="/product"
+        />
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {arrivals.map((item) => (
             <StoreProductCard key={item.id} product={item} />
           ))}
