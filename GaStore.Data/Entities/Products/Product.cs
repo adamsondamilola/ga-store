@@ -34,7 +34,7 @@ namespace GaStore.Data.Entities.Products
         public Guid? ProductTypeId { get; set; }
         public Guid? ProductSubTypeId { get; set; }
         public Guid? ApprovedBy { get; set; }
-        public DateTime? DateApproved { get; set; } = DateTime.Now;
+        public DateTime? DateApproved { get; set; } = DateTime.UtcNow;
         public virtual Category? Category { get; set; }
         public virtual SubCategory? SubCategory { get; set; }
         public virtual ProductType? ProductType { get; set; }

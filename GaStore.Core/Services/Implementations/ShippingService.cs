@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Threading.Tasks;
 using GaStore.Core.Services.Implementations.GigLogistics;
@@ -924,7 +923,7 @@ namespace GaStore.Core.Services.Implementations
             {
               
                     // Validate the DTO
-                    if (dto.Status.IsNullOrEmpty())
+                    if (string.IsNullOrEmpty(dto.Status))
                     {
                         response.StatusCode = 400;
                         response.Message = "Shipping status is required.";
@@ -1012,7 +1011,7 @@ namespace GaStore.Core.Services.Implementations
 				{
 
 					// Validate the DTO
-					if (sh.Status.IsNullOrEmpty())
+					if (string.IsNullOrEmpty(sh.Status))
 					{
 						response.StatusCode = 400;
 						response.Message = "Shipping status is required.";

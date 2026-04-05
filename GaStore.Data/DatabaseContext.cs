@@ -19,10 +19,10 @@ namespace GaStore.Models.Database
     {
         private readonly AppSettings _appSettings;
 
-        public DatabaseContext(IOptions<AppSettings> appSettings)
+        public DatabaseContext(DbContextOptions<DatabaseContext> options, IOptions<AppSettings> appSettings)
+            : base(options)
         {
             _appSettings = appSettings.Value;
-            Console.WriteLine($"AppSettings: {_appSettings?.ConnectionStrings?.DefaultConnection}");
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -34,7 +34,7 @@ namespace GaStore.Models.Database
                 {
                     throw new InvalidOperationException("Connection string is not configured.");
                 }
-                optionsBuilder.UseSqlServer(config);
+                optionsBuilder.UseNpgsql(config);
             }
         }
 
@@ -530,12 +530,56 @@ namespace GaStore.Models.Database
         // ----------------------------
         public override int SaveChanges()
         {
+            NormalizeDateTimes();
+
             foreach (var entry in ChangeTracker.Entries<EntityBase>())
             {
                 if (entry.State == EntityState.Modified)
                     entry.Entity.DateUpdated = DateTime.UtcNow;
             }
             return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            NormalizeDateTimes();
+
+            foreach (var entry in ChangeTracker.Entries<EntityBase>())
+            {
+                if (entry.State == EntityState.Modified)
+                    entry.Entity.DateUpdated = DateTime.UtcNow;
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void NormalizeDateTimes()
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                foreach (var property in entry.Properties)
+                {
+                    if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
+                    {
+                        var value = property.CurrentValue as DateTime?;
+                        if (value.HasValue)
+                        {
+                            property.CurrentValue = NormalizeDateTime(value.Value);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static DateTime NormalizeDateTime(DateTime value)
+        {
+            return value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+                _ => value
+            };
         }
     }
 }

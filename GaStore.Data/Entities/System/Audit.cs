@@ -26,10 +26,8 @@ namespace GaStore.Data.Entities.System
         [MaxLength(20)]
         public string? Status { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? Request { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? Response { get; set; }
 
         [MaxLength(100)]
@@ -50,7 +48,6 @@ namespace GaStore.Data.Entities.System
         [MaxLength(100)]
         public string EntityId { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? Changes { get; set; }
 
         public DateTime RequestTime { get; set; }
@@ -60,7 +57,6 @@ namespace GaStore.Data.Entities.System
         [MaxLength(500)]
         public string? ErrorMessage { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? ErrorDetails { get; set; }
 
         public AuditLog()

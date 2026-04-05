@@ -32,6 +32,7 @@ using GaStore.Core.Services.SMS;
 using GaStore.Data;
 using GaStore.Data.Dtos.ImageUploads;
 using GaStore.Data.Models;
+using GaStore.Infrastructure.Seeding;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Middleware;
 using GaStore.Models.Database;
@@ -47,7 +48,8 @@ builder.Host.UseSerilog();
 // Register AppSettings
 builder.Services.Configure<AppSettings>(builder.Configuration);
 builder.Services.Configure<Termii>(builder.Configuration.GetSection("Termii"));
-IServiceCollection serviceCollection = builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+IServiceCollection serviceCollection = builder.Services.AddDbContext<DatabaseContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register image optimization settings
 builder.Services.Configure<ImageOptimizationSettings>(builder.Configuration.GetSection("ImageOptimization"));
@@ -336,6 +338,7 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+await CategoryHierarchySeeder.SeedAsync(app.Services);
 
 app.UseStaticFiles();
 // Configure the HTTP request pipeline.

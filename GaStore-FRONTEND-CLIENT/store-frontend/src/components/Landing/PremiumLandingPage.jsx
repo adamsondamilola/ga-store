@@ -42,6 +42,9 @@ export default function PremiumLandingPage() {
   const [arrivals, setArrivals] = useState([]);
   const [limitedOffer, setLimitedOffer] = useState(null);
   const [clock, setClock] = useState({ hours: "00", minutes: "00", seconds: "00" });
+  const hasHeroBanner = Boolean(
+    heroBanner && (heroBanner.imageUrl || heroBanner.title || (heroBanner.hasLink && heroBanner.link))
+  );
 
   useEffect(() => {
     const fetchHomepageData = async () => {
@@ -128,41 +131,47 @@ export default function PremiumLandingPage() {
 
   return (
     <main className="w-full space-y-8 px-3 pb-12 pt-2 md:px-6 md:space-y-10 xl:px-8">
-      <section className="overflow-hidden rounded-[24px] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-        <div
-          className="relative min-h-[310px] bg-cover bg-center md:min-h-[430px]"
-          style={{
-            backgroundImage: `linear-gradient(90deg, rgba(31,113,196,0.78) 0%, rgba(31,113,196,0.22) 48%, rgba(255,255,255,0) 72%), url(${heroBanner?.imageUrl || heroImage})`,
-          }}
-        >
-          <div className="flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
-            <p className="font-[cursive] text-4xl leading-none text-[#ffd95c] md:text-6xl">{heroBanner?.title || "Seasonal Picks"}</p>
-            <h1 className="mt-4 text-4xl font-black leading-none md:text-6xl">
-              Discover <span className="text-[#ffffff]">GaStore Essentials</span>
-            </h1>
-            <p className="mt-4 max-w-md text-sm text-white/90 md:text-base">
-              {heroBanner?.hasLink && heroBanner?.link
-                ? "Explore the latest campaign curated from your live storefront content."
-                : "Discover premium wellness picks powered by live catalog data from your store."}
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href={heroBanner?.hasLink && heroBanner?.link ? heroBanner.link : "/product"}
-                className="inline-flex items-center justify-center rounded-xl bg-[#f15a24] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#d94d1d]"
-              >
-                Shop Now
-              </Link>
-              <Link
-                href="#categories"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/55 bg-white/15 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
-              >
-                Explore Categories
-                <FiChevronDown size={15} />
-              </Link>
+      {hasHeroBanner ? (
+        <section className="overflow-hidden rounded-[24px] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+          <div
+            className="relative min-h-[310px] bg-cover bg-center md:min-h-[430px]"
+            style={{
+              backgroundImage: heroBanner?.imageUrl
+                ? `linear-gradient(90deg, rgba(31,113,196,0.78) 0%, rgba(31,113,196,0.22) 48%, rgba(255,255,255,0) 72%), url(${heroBanner.imageUrl})`
+                : "linear-gradient(90deg, rgba(31,113,196,0.92) 0%, rgba(31,113,196,0.70) 48%, rgba(31,113,196,0.35) 100%)",
+            }}
+          >
+            <div className="flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
+              {heroBanner?.title ? (
+                <p className="font-[cursive] text-4xl leading-none text-[#ffd95c] md:text-6xl">{heroBanner.title}</p>
+              ) : null}
+              <h1 className="mt-4 text-4xl font-black leading-none md:text-6xl">
+                Discover <span className="text-[#ffffff]">GaStore Essentials</span>
+              </h1>
+              <p className="mt-4 max-w-md text-sm text-white/90 md:text-base">
+                {heroBanner?.hasLink && heroBanner?.link
+                  ? "Explore the latest campaign curated from your live storefront content."
+                  : "Discover premium wellness picks powered by live catalog data from your store."}
+              </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={heroBanner?.hasLink && heroBanner?.link ? heroBanner.link : "/product"}
+                  className="inline-flex items-center justify-center rounded-xl bg-[#f15a24] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#d94d1d]"
+                >
+                  Shop Now
+                </Link>
+                <Link
+                  href="#categories"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/55 bg-white/15 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+                >
+                  Explore Categories
+                  <FiChevronDown size={15} />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section id="categories" className="rounded-[24px] bg-white px-4 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 md:px-6 md:py-8">
         <SectionHeading title="Shop by Category" subtitle="Browse Our Top Categories" />

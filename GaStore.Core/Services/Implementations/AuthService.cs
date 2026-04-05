@@ -1,6 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.Internal;
-using Azure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -67,7 +65,7 @@ namespace GaStore.Core.Services.Implementations
 					res.Message = ckPassword;
 				else
 				{
-					if(!users.Referrer.IsNullOrEmpty())
+					if (!string.IsNullOrEmpty(users.Referrer))
 					{
 						var getRef = await _unitOfWork.UserRepository.Get(x => x.Username == users.Referrer);
 						if (getRef != null)
@@ -353,7 +351,7 @@ namespace GaStore.Core.Services.Implementations
 				if (!long.TryParse(login.Email, out long n)) emailOrPhone = "Email";
 
                 if (login == null) res.Message = "No field should be left empty";
-                else if (login.Password.IsNullOrEmpty()) res.Message = "Enter password";
+                else if (string.IsNullOrEmpty(login.Password)) res.Message = "Enter password";
                 else if (emailOrPhone == "Email" && ckEmail != null) res.Message = ckEmail;
 				//else if (ckPassword != null) res.Message = ckPassword;
 				else
@@ -384,7 +382,7 @@ namespace GaStore.Core.Services.Implementations
 								Email = user.Email,
 								ClientIp = clientId,
 								Roles = Roles,
-								LastLoginDate = DateTime.Now
+								LastLoginDate = DateTime.UtcNow
 							};
 
 							var claims = await CreateClaims(userClaims);
@@ -513,7 +511,7 @@ namespace GaStore.Core.Services.Implementations
 		public async Task<ServiceResponse<string>> GenerateOtp(OtpRequestDto otp)
 		{
 			ServiceResponse<string> res = new();
-			res.StatusCode = 400;;
+			res.StatusCode = 400;
 
 			try
 			{
@@ -527,7 +525,7 @@ namespace GaStore.Core.Services.Implementations
 					Status = 0,
 					Description = otp.Description,
 					Code = otp.Otp,
-					Expires = DateTime.Now.AddMinutes(15)
+					Expires = DateTime.UtcNow.AddMinutes(15)
 				};
 
 				await _unitOfWork.OtpRepository.Add(ot);
@@ -593,8 +591,8 @@ namespace GaStore.Core.Services.Implementations
 			try
 			{
 				Otp? ot = otp.PreferredMethod == "email"
-					? _unitOfWork.OtpRepository.Get(x => x.Expires >= DateTime.Now && (x.Status == 0 || x.Status == 1) && x.Email == otp.Email && x.Code == otp.Otp).Result
-					: _unitOfWork.OtpRepository.Get(x => x.Expires >= DateTime.Now && (x.Status == 0 || x.Status == 1) && x.Phone == otp.Phone && x.Code == otp.Otp).Result;
+					? _unitOfWork.OtpRepository.Get(x => x.Expires >= DateTime.UtcNow && (x.Status == 0 || x.Status == 1) && x.Email == otp.Email && x.Code == otp.Otp).Result
+					: _unitOfWork.OtpRepository.Get(x => x.Expires >= DateTime.UtcNow && (x.Status == 0 || x.Status == 1) && x.Phone == otp.Phone && x.Code == otp.Otp).Result;
 
 				if (ot != null)
 				{
@@ -716,7 +714,7 @@ namespace GaStore.Core.Services.Implementations
 			try
 			{
 				var otpData = _unitOfWork.OtpRepository.Get(x => x.Code == otp.Otp).Result;
-				if (otpData.Expires <= DateTime.Now)
+				if (otpData.Expires <= DateTime.UtcNow)
 				{
 					res.Message = "Verification code has expired.";
 					return res;

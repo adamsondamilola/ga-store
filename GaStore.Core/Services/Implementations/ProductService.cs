@@ -46,6 +46,68 @@ namespace GaStore.Core.Services.Implementations
 			_tagService = tagService;
 		}
 
+        private async Task<string?> ValidateAndNormalizeProductHierarchyAsync(ProductDto productDto)
+        {
+            if (productDto.CategoryId == null || productDto.CategoryId == Guid.Empty)
+            {
+                return "Category is required.";
+            }
+
+            var categoryExists = await _unitOfWork.CategoryRepository.Get(x => x.Id == productDto.CategoryId);
+            if (categoryExists == null)
+            {
+                return "Category is required.";
+            }
+
+            if (productDto.SubCategoryId == null || productDto.SubCategoryId == Guid.Empty)
+            {
+                return "Sub-Category is required.";
+            }
+
+            var subCategoryExists = await _unitOfWork.SubCategoryRepository.Get(x => x.Id == productDto.SubCategoryId);
+            if (subCategoryExists == null || subCategoryExists.CategoryId != productDto.CategoryId)
+            {
+                return "Sub-Category is invalid for the selected category.";
+            }
+
+            if (!productDto.ProductTypeId.HasValue || productDto.ProductTypeId == Guid.Empty)
+            {
+                productDto.ProductTypeId = null;
+                productDto.ProductSubTypeId = null;
+                return null;
+            }
+
+            var productType = await _unitOfWork.ProductTypeRepository.Get(pt => pt.Id == productDto.ProductTypeId);
+            if (productType == null)
+            {
+                return "Product type is invalid.";
+            }
+
+            if (productType.SubCategoryId != productDto.SubCategoryId)
+            {
+                return "Product type is invalid for the selected sub-category.";
+            }
+
+            if (!productDto.ProductSubTypeId.HasValue || productDto.ProductSubTypeId == Guid.Empty)
+            {
+                productDto.ProductSubTypeId = null;
+                return null;
+            }
+
+            var productSubType = await _unitOfWork.ProductSubTypeRepository.Get(pst => pst.Id == productDto.ProductSubTypeId);
+            if (productSubType == null)
+            {
+                return "Product sub-type is invalid.";
+            }
+
+            if (productSubType.ProductTypeId != productDto.ProductTypeId)
+            {
+                return "Product sub-type is invalid for the selected product type.";
+            }
+
+            return null;
+        }
+
         public static string GetFirstStringBeforeDash(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -661,39 +723,6 @@ namespace GaStore.Core.Services.Implementations
 					return response;
 				}
 
-                if (productDto.ProductTypeId.HasValue)
-                {
-					if(productDto.ProductTypeId != Guid.Empty)
-					{
-                        var checkProductType = await _unitOfWork.ProductTypeRepository.Get(pt => pt.Id == productDto.ProductTypeId);
-                        if (checkProductType == null)
-                        {
-                            response.Message = "Product type is invalid.";
-                            return response;
-                        }
-                    }else
-                    {
-                        productDto.ProductTypeId = null;
-                    }
-                }
-
-                if (productDto.ProductSubTypeId.HasValue)
-                {
-                    if(productDto.ProductSubTypeId != Guid.Empty)
-					{
-						var checkProductSubType = await _unitOfWork.ProductSubTypeRepository.Get(pt => pt.Id == productDto.ProductSubTypeId);
-                    if (checkProductSubType == null)
-                    {
-                        response.Message = "Product sub-type is invalid.";
-                        return response;
-                    }
-					}
-					else
-					{
-						productDto.ProductSubTypeId = null;
-                    }
-                }
-
                 if (productDto.Tags != null && productDto.Tags.Count > 0)
                 {
                     foreach (var tags in productDto.Tags)
@@ -823,20 +852,15 @@ namespace GaStore.Core.Services.Implementations
 
                 else
                 {
-					Guid? categoryId = null;
-					var categoryExists = await _unitOfWork.CategoryRepository.Get(x => x.Id == productDto.CategoryId);
-					if (categoryExists == null) { 
-						response.StatusCode = 400;
-						response.Message = "Category is required.";
-						return response;
+                    var hierarchyError = await ValidateAndNormalizeProductHierarchyAsync(productDto);
+                    if (!string.IsNullOrEmpty(hierarchyError))
+                    {
+                        response.StatusCode = 400;
+                        response.Message = hierarchyError;
+                        return response;
                     }
-                    var subCategoryExists = await _unitOfWork.SubCategoryRepository.Get(x => x.Id == productDto.SubCategoryId);
-                if (subCategoryExists == null) { 
-                    response.StatusCode = 400;
-                response.Message = "Sub-Category is required.";
-                return response;
-            }
-                    if (productDto.Id.HasValue && categoryExists != null)
+
+                    if (productDto.Id.HasValue)
 					{
 						//if product exists
 						var prod = await _unitOfWork.ProductRepository.GetById(productDto.Id.Value);
