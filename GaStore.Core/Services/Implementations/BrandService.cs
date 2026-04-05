@@ -55,10 +55,10 @@ namespace GaStore.Core.Services.Implementations
 				}
 
 				// Get total records count
-				var totalRecords = query_.Count();
+                var totalRecords = _unitOfWork.BrandRepository.GetAll().Result.Count();
 
-				// Apply pagination
-				var brands = query_;
+                // Apply pagination
+                var brands = query_;
 
 				// Create paginated response
 				var response_ = new PaginatedServiceResponse<List<Brand>>
@@ -176,8 +176,17 @@ namespace GaStore.Core.Services.Implementations
 					return response;
 				}
 
-				// Update the brand
-				_context.Entry(existingBrand).CurrentValues.SetValues(brand);
+                //check duplicate name or code
+                var brand_check = await _unitOfWork.BrandRepository.Get(x => (x.Name == brand.Name || x.Code == brand.Code) && x.Id != Id);
+                if (brand_check != null)
+                {
+                    response.StatusCode = 400;
+                    response.Message = "Brand name or code already exists.";
+                    return response;
+                }
+
+                // Update the brand
+                _context.Entry(existingBrand).CurrentValues.SetValues(brand);
 				await _context.SaveChangesAsync();
 
 				// Return success response

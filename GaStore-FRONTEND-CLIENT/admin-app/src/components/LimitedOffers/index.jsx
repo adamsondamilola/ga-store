@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import PageTitleComponent from "../PageTitle";
 import Pagination from "../Pagination";
 import requestHandler from "../../utils/requestHandler";
 import endpointsPath from "../../constants/EndpointsPath";
 import ClassStyle from "../../class-styles";
 import { useDebounce } from "../../hooks/useDebounce";
+import ProductWorkspaceShell, { ProductSurface } from "../Products/ProductWorkspaceShell";
 
 const createInitialForm = () => ({
   id: "",
@@ -297,29 +297,47 @@ export default function LimitedOffers() {
     }
   };
 
-  return (
-    <div className="p-4">
-      <PageTitleComponent title="Limited Offers" />
+  const stats = useMemo(() => {
+    const liveCount = offers.filter((offer) => offer.status === "Live").length;
+    const homepageCount = offers.filter((offer) => offer.showOnHomepage).length;
+    const activeCount = offers.filter((offer) => offer.isActive).length;
+    return [
+      { label: "Offers on page", value: offers.length, helper: `${totalPages} pages` },
+      { label: "Live now", value: liveCount, helper: "Running" },
+      { label: "Homepage", value: homepageCount, helper: "Visible" },
+      { label: "Active", value: activeCount, helper: "Enabled" },
+    ];
+  }, [offers, totalPages]);
 
+  return (
+    <ProductWorkspaceShell
+      eyebrow="Products"
+      title="Limited offers"
+      description="Create and schedule promotional collections, control homepage visibility, and manage the order of products featured inside each campaign."
+      stats={stats}
+      actions={
+        <button type="button" className="rounded-2xl bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition hover:bg-[#ea580c]" onClick={openCreate}>
+          + New limited offer
+        </button>
+      }
+    >
+      <ProductSurface>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <input
           type="text"
           placeholder="Search limited offers..."
-          className="border px-3 py-2 rounded w-full md:w-80"
+          className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm md:w-80"
           value={searchTerm}
           onChange={(event) => {
             setSearchTerm(event.target.value);
             setPage(1);
           }}
         />
-        <button type="button" className={ClassStyle.button} onClick={openCreate}>
-          + New Limited Offer
-        </button>
       </div>
 
-      <div className="relative overflow-x-auto rounded-lg border border-gray-200 bg-white">
-        <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+      <div className="relative overflow-x-auto rounded-[22px] border border-slate-200 bg-white">
+        <table className="w-full text-sm text-left text-slate-600">
+          <thead className="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-400">
             <tr>
               <th className="px-4 py-3">Title</th>
               <th className="px-4 py-3">Status</th>
@@ -332,10 +350,10 @@ export default function LimitedOffers() {
           </thead>
           <tbody>
             {offers.map((offer) => (
-              <tr key={offer.id} className="border-t">
+              <tr key={offer.id} className="border-t border-slate-100">
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-gray-900">{offer.title}</div>
-                  <div className="text-xs text-gray-500">{offer.badgeText || "No badge"}</div>
+                  <div className="font-semibold text-slate-900">{offer.title}</div>
+                  <div className="text-xs text-slate-500">{offer.badgeText || "No badge"}</div>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone[offer.status] || statusTone.Inactive}`}>
@@ -347,24 +365,27 @@ export default function LimitedOffers() {
                 <td className="px-4 py-3">{offer.showOnHomepage ? "Visible" : "Hidden"}</td>
                 <td className="px-4 py-3">{offer.productCount}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <button type="button" className="mr-3 text-blue-600" onClick={() => openEdit(offer.id)}>Edit</button>
-                  <button type="button" className="mr-3 text-amber-600" onClick={() => handleToggleActive(offer.id)}>
+                  <button type="button" className="mr-3 font-medium text-blue-600" onClick={() => openEdit(offer.id)}>Edit</button>
+                  <button type="button" className="mr-3 font-medium text-amber-600" onClick={() => handleToggleActive(offer.id)}>
                     {offer.isActive ? "Deactivate" : "Activate"}
                   </button>
-                  <button type="button" className="text-red-600" onClick={() => handleDelete(offer.id)}>Delete</button>
+                  <button type="button" className="font-medium text-red-600" onClick={() => handleDelete(offer.id)}>Delete</button>
                 </td>
               </tr>
             ))}
             {!loading && offers.length === 0 && (
               <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">No limited offers found.</td>
+                <td colSpan="7" className="px-4 py-12 text-center text-slate-500">No limited offers found.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+      </ProductSurface>
 
+      <ProductSurface className="pt-4">
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} pageSize={pageSize} onPageSizeChange={setPageSize} />
+      </ProductSurface>
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
@@ -462,6 +483,6 @@ export default function LimitedOffers() {
           </div>
         </div>
       )}
-    </div>
+    </ProductWorkspaceShell>
   );
 }

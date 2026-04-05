@@ -25,6 +25,16 @@ const OrderList = ({ loading, orders, onEdit, onDelete, fetchOrders, allowWaybil
     { value: 'Cancelled', label: 'Cancelled' }
   ];
 
+  const getVariantSummary = (variant) => {
+    if (!variant) return '';
+
+    const normalized = [variant.name, variant.color, variant.size, variant.style]
+      .map((value) => (typeof value === 'string' ? value.trim() : value))
+      .filter((value) => value && value !== 'null');
+
+    return normalized.join(' / ');
+  };
+
   // Fix: Handle shipping tracking ID update for specific order
   const handleShippingTrackingIdUpdate = async (shippingId, orderId) => {
     const trackingId = trackingIdMap[orderId]?.trim();
@@ -382,9 +392,9 @@ const OrderList = ({ loading, orders, onEdit, onDelete, fetchOrders, allowWaybil
                         <tr key={item.id}>
                           <td className="item-name">
                             {item.product?.name || 'Unknown Product'}
-                            {item.variant && (
+                            {getVariantSummary(item.variant) && (
                               <div style={{ fontSize: '10px' }}>
-                                {item.variant.color || item.variant.size || 'Standard'}
+                                {getVariantSummary(item.variant)}
                               </div>
                             )}
                           </td>

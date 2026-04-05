@@ -43,7 +43,11 @@ export function DashboardNavBarComponent() {
   }
   
   return (
-    <Navbar fluid rounded>
+    <Navbar
+      fluid
+      rounded
+      className="border-b border-[#ea580c] bg-[#f97316] text-white shadow-sm"
+    >
       <Navbar.Brand href="/dashboard">
         <img src={AppImages.logo} className="mr-3 h-6 sm:h-9" alt="Logo" />
       </Navbar.Brand>

@@ -682,12 +682,12 @@ const ProductDetailPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen space-y-6 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_40%,#f8fafc_100%)] px-4 py-6 sm:px-6">
       <Spinner loading={loading || isDeleting} />
       
       {/* Header Actions */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto md:px-4 px-4 py-4">
+      <div className="mx-auto max-w-7xl rounded-[28px] border border-slate-200 bg-white px-4 py-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:px-6">
+        <div className="py-0">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
@@ -698,10 +698,10 @@ const ProductDetailPage = () => {
               <button 
                 onClick={featuredAction}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-2xl text-sm font-medium transition-colors ${
                   featuredProduct 
-                    ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                    : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                    ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' 
+                    : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
                 } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               > 
                 {featuredProduct ? '⭐ Remove Featured' : '⭐ Make Featured'}
@@ -710,7 +710,7 @@ const ProductDetailPage = () => {
               <button 
                 onClick={approvalAction}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-2xl text-sm font-medium transition-colors ${
                   product.isApproved 
                     ? 'bg-red-100 text-red-800 hover:bg-red-200' 
                     : 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -721,7 +721,7 @@ const ProductDetailPage = () => {
               
               <Link 
                 to={`/products/${product.id}/update`}
-                className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                className="px-4 py-2 bg-slate-100 text-slate-800 rounded-2xl hover:bg-slate-200 transition-colors text-sm font-medium"
               >
                 ✏️ Edit Product
               </Link>
@@ -729,14 +729,14 @@ const ProductDetailPage = () => {
               <button 
                 onClick={deleteProduct}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-red-600 text-white rounded-2xl hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 🗑️ Delete Product
               </button>
               
               <Link 
                 to="/products"
-                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors text-sm font-medium"
+                className="px-4 py-2 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-colors text-sm font-medium"
               >
                 ← Back to Products
               </Link>
@@ -745,7 +745,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      <div className="container mx-auto md:px-4 px-4 py-8">
+      <div className="mx-auto max-w-7xl px-0 py-2">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Sidebar - Image Gallery */}
           <div className="lg:col-span-1">
@@ -782,7 +782,7 @@ const ProductDetailPage = () => {
 
 
               {/* Quick Stats */}
-              <div className="bg-white rounded-lg p-4 shadow-sm mt-6">
+              <div className="mt-6 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
                 <h3 className="font-semibold mb-3">Quick Stats</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
@@ -807,7 +807,7 @@ const ProductDetailPage = () => {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Navigation Tabs */}
-            <div className="bg-white rounded-lg shadow-sm mb-6">
+            <div className="mb-6 rounded-[24px] border border-slate-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
               <nav className="flex overflow-x-auto">
                 {
                 ['overview', 'variants', 'pricing', 'specifications', 'Created By']
@@ -816,10 +816,10 @@ const ProductDetailPage = () => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    className={`flex-1 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab
-                        ? 'border-b-2 border-blue-500 text-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-orange-50 text-orange-700'
+                        : 'text-gray-500 hover:bg-slate-50 hover:text-gray-700'
                     }`}
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}

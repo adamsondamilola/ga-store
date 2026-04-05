@@ -8,6 +8,7 @@ import endpointsPath from '../../../../constants/EndpointsPath';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { fetchTags } from '../../../Tags/Actions/TagService';
+import ProductWorkspaceShell, { ProductSurface } from '../../ProductWorkspaceShell';
 
 const steps = [
   { id: 1, title: 'Product Info' },
@@ -296,25 +297,34 @@ const CreateProduct = () => {
   };
 
 return (
-  <div className="max-w-7xl mx-auto mt-8 p-4 bg-white rounded-lg shadow-md flex flex-col lg:flex-row gap-6">
+  <ProductWorkspaceShell
+    eyebrow="Products"
+    title="Create product"
+    description="Build a new catalog item with its core information, variants, pricing tiers, and specifications in one guided workflow."
+    stats={[
+      { label: 'Steps', value: steps.length, helper: 'Guided flow' },
+      { label: 'Current step', value: activeStep, helper: steps[activeStep - 1]?.title },
+      { label: 'Category data', value: categories.length, helper: 'Loaded' },
+    ]}
+  >
+  <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
     {/* Left Side Navigation */}
-    <div className="w-full lg:w-1/4">
-      <div className="lg:sticky lg:top-24 bg-white p-4 rounded-lg border shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Create Product</h2>
-        <p className="text-gray-600 text-sm mb-6">Fill out all the required information to create a new product</p>
+    <ProductSurface className="h-fit lg:sticky lg:top-24">
+        <h2 className="text-xl font-bold text-slate-900 mb-4">Create product</h2>
+        <p className="text-slate-600 text-sm mb-6">Move through each section and jump back anytime from the progress rail.</p>
         
         <div className="space-y-2 mb-6">
           {steps.map(s => (
             <button
               key={s.id}
               type="button"
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center
+              className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-medium transition-colors flex items-center
                 ${s.id === activeStep 
-                  ? 'bg-blue-100 border border-blue-300 text-blue-700 shadow-md' 
-                  : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                  ? 'bg-orange-50 border border-orange-200 text-orange-700 shadow-sm' 
+                  : 'border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
               onClick={() => scrollToStep(s.id)}
             >
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 ${s.id === activeStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 ${s.id === activeStep ? 'bg-[#f97316] text-white' : 'bg-slate-200 text-slate-600'}`}>
                 {s.id}
               </span>
               <span className="truncate">{s.title}</span>
@@ -326,7 +336,7 @@ return (
         <div className="hidden md:block">
           <button
             type="button"
-            className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
+            className="w-full px-4 py-3 bg-[#f97316] text-white rounded-2xl text-sm font-medium hover:bg-[#ea580c] disabled:opacity-50 flex items-center justify-center"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
@@ -343,17 +353,17 @@ return (
             )}
           </button>
         </div>
-      </div>
-    </div>
+    </ProductSurface>
 
     {/* Right Side Content */}
-    <div className="w-full lg:w-3/4">
+    <div className="w-full">
       {/* All Steps Rendered at Once */}
       <div className="space-y-6">
         {/* Step 1 */}
-        <div id="step-1" ref={step1Ref} className="p-4 md:p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2 shrink-0">1</span>
+        <ProductSurface id="step-1" className="scroll-mt-24">
+        <div ref={step1Ref} className="p-0">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2 shrink-0">1</span>
             {steps[0].title}
           </h2>
           <StepOneProductInfo
@@ -363,11 +373,13 @@ return (
             tags={tags}
           />
         </div>
+        </ProductSurface>
 
         {/* Step 2 */}
-        <div id="step-2" ref={step2Ref} className="p-4 md:p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2 shrink-0">2</span>
+        <ProductSurface id="step-2" className="scroll-mt-24">
+        <div ref={step2Ref} className="p-0">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2 shrink-0">2</span>
             {steps[1].title}
           </h2>
           <StepTwoVariant
@@ -377,11 +389,13 @@ return (
             onChange={data => handleDataUpdate('variants', data)}
           />
         </div>
+        </ProductSurface>
 
         {/* Step 3 */}
-        <div id="step-3" ref={step3Ref} className="p-4 md:p-6 border rounded-lg">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2 shrink-0">3</span>
+        <ProductSurface id="step-3" className="scroll-mt-24">
+        <div ref={step3Ref} className="p-0">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+            <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2 shrink-0">3</span>
             {steps[2].title}
           </h2>
           <StepThreeSpecification
@@ -389,13 +403,14 @@ return (
             onChange={data => handleDataUpdate('specification', data)}
           />
         </div>
+        </ProductSurface>
       </div>
 
       {/* Submit Button at Bottom - Only show on mobile/tablet */}
       <div className="mt-8 flex justify-end md:hidden">
         <button
           type="button"
-          className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
+          className="w-full md:w-auto px-6 py-3 bg-[#f97316] text-white rounded-2xl font-medium hover:bg-[#ea580c] disabled:opacity-50 flex items-center justify-center"
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
@@ -414,6 +429,7 @@ return (
       </div>
     </div>
   </div>
+  </ProductWorkspaceShell>
 );
 };
 

@@ -1,7 +1,8 @@
-import { Sidebar, SidebarCollapse, SidebarItem } from "flowbite-react";
 import {
-  ChartPie,
   BadgePercent,
+  ChartPie,
+  ChevronDown,
+  ChevronRight,
   Inbox,
   List,
   ListOrdered,
@@ -9,187 +10,282 @@ import {
   MapPin,
   Ticket,
   Users,
-  Users2
+  Users2,
 } from "lucide-react";
 import {
-  Home,
-  Password,
-  Person,
-  Logout,
-  Sell,
-  LocalShipping,
-  Payments,
-  Category,
   BrandingWatermark,
-  ViewCarousel,
-  PhotoAlbum,
+  Category,
+  LocalShipping,
+  LocalShippingTwoTone,
+  Logout,
+  Password,
+  Payments,
+  Person,
   Photo,
+  Sell,
   Tag,
-  LocalShippingTwoTone
+  ViewCarousel,
 } from "@mui/icons-material";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import requestHandler from "../../utils/requestHandler";
 import endpointsPath from "../../constants/EndpointsPath";
 
-const AsideComponent = () => {
-  const router = useNavigate();
-  const location = useLocation();
-  const currentPath = location.pathname;
+const primaryItems = [
+  { href: "/dashboard", label: "Dashboard", icon: ChartPie },
+  {
+    label: "Products",
+    icon: Sell,
+    children: [
+      { href: "/products", label: "Manage Products" },
+      { href: "/products/new", label: "Add Product" },
+      { href: "/products/featured", label: "Featured Products" },
+      { href: "/products/limited-offers", label: "Limited Offers", icon: BadgePercent },
+      { href: "/products/vat", label: "VAT" },
+    ],
+  },
+  {
+    label: "Categories",
+    icon: Category,
+    children: [
+      { href: "/categories", label: "Manage Categories" },
+      { href: "/sub-categories", label: "Sub-Categories" },
+      { href: "/sub-categories/product-types", label: "Types" },
+      {
+        href: "/sub-categories/product-types/product-sub-types",
+        label: "Sub-Types",
+      },
+    ],
+  },
+  { href: "/brands", label: "Brands", icon: BrandingWatermark },
+  { href: "/tags", label: "Tags/Collections", icon: Tag },
+  { href: "/coupon", label: "Coupons", icon: List },
+  { href: "/orders", label: "Orders", icon: ListOrdered },
+  { href: "/shipping", label: "Shipping", icon: LocalShipping },
+  { href: "/shipping/providers", label: "Shipping Providers", icon: LocalShippingTwoTone },
+  { href: "/shipping/locations", label: "Delivery Location", icon: MapPin },
+  { href: "/transactions", label: "Transactions", icon: Payments },
+  { href: "/manual-payment-accounts", label: "Payment Settings", icon: Payments },
+  {
+    label: "Website Content",
+    icon: Inbox,
+    children: [
+      { href: "/website-content", label: "Website Settings" },
+      { href: "/website-content/faqs", label: "FAQs" },
+      { href: "/website-content/policies", label: "Policies and Legal Content" },
+    ],
+  },
+  { href: "/vouchers", label: "Vouchers", icon: Ticket },
+  {
+    label: "Sliders",
+    icon: ViewCarousel,
+    children: [{ href: "/sliders", label: "Manage Sliders" }],
+  },
+  {
+    label: "Banners",
+    icon: Photo,
+    children: [{ href: "/banners", label: "Manage Banners" }],
+  },
+  {
+    label: "Users",
+    icon: Users,
+    children: [
+      { href: "/users", label: "Manage Users" },
+      { href: "/users/referral-commission", label: "Referral Commission" },
+    ],
+  },
+  { href: "/audit-logs", label: "Audit Logs", icon: Logs },
+  { href: "/subscribers", label: "Subscribers", icon: Users2 },
+];
 
-  const [userId, setUserId] = useState(localStorage.getItem('userId') || '')
+const matchPath = (pathname, href) => pathname === href || pathname.startsWith(`${href}/`);
+
+const NavLink = ({ item, pathname, nested = false }) => {
+  const Icon = item.icon;
+  const active = matchPath(pathname, item.href);
+
+  return (
+    <Link
+      to={item.href}
+      className={`group flex items-center justify-between rounded-2xl px-3 py-3 text-sm transition-all duration-200 ${
+        active
+          ? "bg-[#ff8a1c] text-white shadow-[0_14px_28px_rgba(255,138,28,0.32)]"
+          : nested
+            ? "text-[#6b6b6b] hover:bg-white hover:text-[#272727]"
+            : "text-[#6b6b6b] hover:bg-[#fff3e8] hover:text-[#272727]"
+      }`}
+    >
+      <span className="flex items-center gap-3">
+        <span
+          className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+            active
+              ? "bg-white/20 text-white"
+              : "bg-[#f7f3ee] text-[#7d7d7d] group-hover:bg-white group-hover:text-[#ff8a1c]"
+          }`}
+        >
+          {Icon ? <Icon className="text-[1.05rem]" /> : <ChevronRight className="text-[1.05rem]" />}
+        </span>
+        <span className="font-medium">{item.label}</span>
+      </span>
+      <ChevronRight
+        className={`text-sm transition ${
+          active ? "text-white/90" : "text-[#c8c8c8] group-hover:text-[#8b8b8b]"
+        }`}
+      />
+    </Link>
+  );
+};
+
+const CollapsibleSection = ({ item, pathname }) => {
+  const Icon = item.icon;
+  const active = item.children.some((child) => matchPath(pathname, child.href));
+  const [open, setOpen] = useState(active);
+
   useEffect(() => {
-      const loggedInUser =  async () => { 
-        const resp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user`, true);
-        if(resp.statusCode === 200){
-          const UserId = resp.result.data[0].userId;
-            setUserId(UserId)
-            localStorage.setItem('userId', UserId);
-
-            /*const roles = resp.result.data
-            const hasAdmin = roles.some(role => role.name === "Admin");
-            if(!hasAdmin){
-             router("/login");
-             }*/
-        }
-        else {
-         // router("/login")
-        }
+    if (active) {
+      setOpen(true);
     }
+  }, [active]);
+
+  return (
+    <div className="rounded-[24px]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={`group flex w-full items-center justify-between rounded-2xl px-3 py-3 text-sm transition-all duration-200 ${
+          active
+            ? "bg-[#ff8a1c] text-white shadow-[0_14px_28px_rgba(255,138,28,0.32)]"
+            : "text-[#6b6b6b] hover:bg-[#fff3e8] hover:text-[#272727]"
+        }`}
+      >
+        <span className="flex items-center gap-3">
+          <span
+            className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
+              active
+                ? "bg-white/20 text-white"
+                : "bg-[#f7f3ee] text-[#7d7d7d] group-hover:bg-white group-hover:text-[#ff8a1c]"
+            }`}
+          >
+            <Icon className="text-[1.05rem]" />
+          </span>
+          <span className="font-medium">{item.label}</span>
+        </span>
+        <ChevronDown
+          className={`text-sm transition ${open ? "rotate-180" : ""} ${
+            active ? "text-white/90" : "text-[#c8c8c8] group-hover:text-[#8b8b8b]"
+          }`}
+        />
+      </button>
+
+      {open ? (
+        <div className="mt-2 space-y-1.5 rounded-[24px] bg-[#f8f4ef] p-2">
+          {item.children.map((child) => (
+            <NavLink key={child.href} item={child} pathname={pathname} nested />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const AsideComponent = () => {
+  const location = useLocation();
+  const pathname = location.pathname;
+  const [userId, setUserId] = useState(localStorage.getItem("userId") || "");
+
+  useEffect(() => {
+    const loggedInUser = async () => {
+      const resp = await requestHandler.get(`${endpointsPath.auth}/logged-in-user`, true);
+      if (resp.statusCode === 200) {
+        const nextUserId = resp.result.data[0].userId;
+        setUserId(nextUserId);
+        localStorage.setItem("userId", nextUserId);
+      }
+    };
+
     loggedInUser();
-    },[])
+  }, []);
+
+  const accountItems = useMemo(
+    () => [
+      { href: userId ? `/profile/${userId}` : "/profile", label: "Profile", icon: Person },
+      { href: "/profile/password-update", label: "Update Password", icon: Password },
+    ],
+    [userId]
+  );
+
+  const activeLabel = useMemo(() => {
+    const flatItems = [
+      ...primaryItems.flatMap((item) => (item.children ? item.children : item)),
+      ...accountItems,
+    ];
+
+    return flatItems.find((item) => item.href && matchPath(pathname, item.href))?.label || "Dashboard";
+  }, [accountItems, pathname]);
 
   const logOut = () => {
     localStorage.removeItem("token");
-    //router("/");
-    window.location.href="/"
+    window.location.href = "/";
   };
 
-  const isActive = (path) =>
-    currentPath === path ? "text-blue-500 dark:text-blue-400 font-semibold" : "";
-  const isWebsiteContentActive = currentPath.startsWith("/website-content");
-
   return (
-    <Sidebar aria-label="Sidebar with multi-level dropdown example" className="text-start">
-      <Sidebar.Items>
-        <Sidebar.ItemGroup>
-          {/*<Sidebar.Item href="/" icon={Home} className={isActive("/")}>
-            Home
-          </Sidebar.Item>*/}
+    <aside className="h-full w-full bg-[#fcfbf9] text-left">
+      <div className="flex h-full flex-col px-5 py-6">
+        <div className="rounded-[26px] bg-white px-4 py-4 shadow-[0_10px_28px_rgba(32,26,18,0.05)]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff8a1c] text-white shadow-[0_10px_20px_rgba(255,138,28,0.25)]">
+              <ChartPie className="text-lg" />
+            </div>
+            <div>
+              <p className="text-[1.05rem] font-semibold text-[#202020]">Admin Console</p>
+              <p className="text-xs text-[#8b8b8b]">{activeLabel}</p>
+            </div>
+          </div>
+        </div>
 
-          <Sidebar.Item href="/dashboard" icon={ChartPie} className={isActive("/dashboard")}>
-            Dashboard
-          </Sidebar.Item>
+        <div className="mt-7">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b4b4b4]">
+            Main Menu
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {primaryItems.map((item) =>
+              item.children ? (
+                <CollapsibleSection key={item.label} item={item} pathname={pathname} />
+              ) : (
+                <NavLink key={item.href} item={item} pathname={pathname} />
+              )
+            )}
+          </div>
+        </div>
 
-          <SidebarCollapse icon={Sell} label="Products" className={isActive("/products")}>
-            <SidebarItem href="/products" className={isActive("/products")}>Manage Products</SidebarItem>
-            <SidebarItem href="/products/new" className={isActive("/products/new")}>Add Product</SidebarItem>
-            <SidebarItem href="/products/featured" className={isActive("/products/featured")}>Featured Products</SidebarItem>
-            <SidebarItem href="/products/limited-offers" className={isActive("/products/limited-offers")}>
-              <div className="flex items-center gap-2">
-                <BadgePercent size={16} />
-                <span>Limited Offers</span>
-              </div>
-            </SidebarItem>
-            <SidebarItem href="/products/vat" className={isActive("/products/vat")}>Vat</SidebarItem>
-            {/*<SidebarItem href="#">Pricing Tiers</SidebarItem>*/}
-          </SidebarCollapse>
+        <div className="mt-7 border-t border-[#ece6df] pt-6">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b4b4b4]">
+            Account
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {accountItems.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
+        </div>
 
-          <SidebarCollapse icon={Category} label="Categories" className={isActive("/categories")}>
-            <SidebarItem href="/categories" className={isActive("/categories")}>Manage Categories</SidebarItem>
-            {/*<SidebarItem href="/categories/new" className={isActive("/categories/new")}>Add Category</SidebarItem>*/}
-            <SidebarItem href="/sub-categories" className={isActive("/sub-categories")}>Sub-Categories</SidebarItem>
-            <SidebarItem href="/sub-categories/product-types" className={isActive("/sub-categories/product-types")}>Types</SidebarItem>
-            <SidebarItem href="/sub-categories/product-types/product-sub-types" className={isActive("/sub-categories/product-sub-types")}>Sub-Types</SidebarItem>
-            {/*<SidebarItem href="/sub-categories/new" className={isActive("/sub-categories/new")}>Add Sub-Category</SidebarItem>*/}
-          </SidebarCollapse>
-
-          <Sidebar.Item href="/brands" icon={BrandingWatermark} className={isActive("/brands")}>
-            Brands
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/tags" icon={Tag} className={isActive("/tags")}>
-            Tags/Collections
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/coupon" icon={List} className={isActive("/coupon")}>
-            Coupons
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/orders" icon={ListOrdered} className={isActive("/orders")}>
-            Orders
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/shipping" icon={LocalShipping} className={isActive("/shipping")}>
-            Shipping
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/shipping/providers" icon={LocalShippingTwoTone} className={isActive("/shipping/providers")}>
-            Shipping Providers
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/shipping/locations" icon={MapPin} className={isActive("/shipping/locations")}>
-            Delivery Location
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/transactions" icon={Payments} className={isActive("/transactions")}>
-            Transactions
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/manual-payment-accounts" icon={Payments} className={isActive("/manual-payment-accounts")}>
-            Payment Settings
-          </Sidebar.Item>
-
-          <SidebarCollapse icon={Inbox} label="Website Content" className={isWebsiteContentActive ? "text-blue-500 dark:text-blue-400 font-semibold" : ""}>
-            <SidebarItem href="/website-content" className={isActive("/website-content")}>Website Settings</SidebarItem>
-            <SidebarItem href="/website-content/faqs" className={isActive("/website-content/faqs")}>FAQs</SidebarItem>
-            <SidebarItem href="/website-content/policies" className={isActive("/website-content/policies")}>Policies and Legal Content</SidebarItem>
-          </SidebarCollapse>
-
-          <Sidebar.Item href="/vouchers" icon={Ticket} className={isActive("/vouchers")}>
-            Vouchers
-          </Sidebar.Item>
-
-           <SidebarCollapse icon={ViewCarousel} label="Sliders" className={isActive("/sliders")}>
-            <SidebarItem href="/sliders" className={isActive("/sliders")}>Manage Sliders</SidebarItem>
-          </SidebarCollapse>
-
-          <SidebarCollapse icon={Photo} label="Banners" className={isActive("/banners")}>
-            <SidebarItem href="/banners" className={isActive("/banners")}>Manage Banners</SidebarItem>
-          </SidebarCollapse>
-
-          <SidebarCollapse icon={Users} label="Users" className={isActive("/users")}>
-            <Sidebar.Item href="/users" className={isActive("/users")}>
-            Manage Users
-          </Sidebar.Item>
-          <Sidebar.Item href="/users/referral-commission" className={isActive("/users/referral-commission")}>
-            Referral Commission
-          </Sidebar.Item>
-          </SidebarCollapse>
-
-
-          <Sidebar.Item href="/audit-logs" icon={Logs} className={isActive("/audit-logs")}>
-            Audit Logs
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/subscribers" icon={Users2} className={isActive("/subscribers")}>
-            Subscribers
-          </Sidebar.Item>
-
-          <Sidebar.Item href={`/profile/${userId}`} icon={Person} className={isActive("/profile")}>
-            Profile
-          </Sidebar.Item>
-
-          <Sidebar.Item href="/profile/password-update" icon={Password} className={isActive("/profile/password-update")}>
-            Update Password
-          </Sidebar.Item>
-
-          <Sidebar.Item onClick={logOut} icon={Logout}>
-            Logout
-          </Sidebar.Item>
-        </Sidebar.ItemGroup>
-      </Sidebar.Items>
-    </Sidebar>
+        <div className="mt-auto border-t border-[#ece6df] pt-6">
+          <button
+            type="button"
+            onClick={logOut}
+            className="flex w-full items-center justify-between rounded-2xl border border-[#efe7de] bg-white px-3 py-3 text-sm text-[#6b6b6b] transition hover:border-[#ffd3a8] hover:bg-[#fff6ee] hover:text-[#272727]"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f7f3ee] text-[#7d7d7d]">
+                <Logout className="text-[1.05rem]" />
+              </span>
+              <span className="font-medium">Logout</span>
+            </span>
+            <ChevronRight className="text-sm text-[#c8c8c8]" />
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 };
 

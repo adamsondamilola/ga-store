@@ -1,33 +1,40 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Spinner } from 'flowbite-react';
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  ArrowRight,
+  Boxes,
+  CircleCheck,
+  Clock3,
+  Filter,
+  PackagePlus,
+  Percent,
+  Search,
+  Sparkles,
+  Star,
+} from 'lucide-react';
 import Pagination from '../Pagination';
 import requestHandler from '../../utils/requestHandler';
 import endpointsPath from '../../constants/EndpointsPath';
 import { toast } from 'react-toastify';
-import ClassStyle from '../../class-styles';
-import { Link } from 'react-router-dom';
-import { Spinner } from 'flowbite-react';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import ProductWorkspaceShell, { ProductSurface } from './ProductWorkspaceShell';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [formData, setFormData] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  
-  // Filter states
-  const [isAvailable, setIsAvailable] = useState(null); // null = all, true = available, false = unavailable
-  const [isApproved, setIsApproved] = useState(null); // null = all, true = approved, false = pending
-  const [dateFilter, setDateFilter] = useState('all'); // 'all', 'today', 'last7days', 'last30days', 'thismonth', 'custom'
+  const [isAvailable, setIsAvailable] = useState(null);
+  const [isApproved, setIsApproved] = useState(null);
+  const [dateFilter, setDateFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showDateInputs, setShowDateInputs] = useState(false);
 
-  // Calculate dates based on filter
   const getDateRange = () => {
     const now = new Date();
     let start = null;
@@ -57,7 +64,6 @@ const Products = () => {
         }
         break;
       default:
-        // 'all' - no date filter
         break;
     }
 
@@ -66,30 +72,26 @@ const Products = () => {
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
-    
     if (searchTerm) params.append('searchTerm', searchTerm);
     params.append('pageNumber', page);
     params.append('pageSize', pageSize);
-    
     if (isAvailable !== null) params.append('isAvailable', isAvailable);
     if (isApproved !== null) params.append('isApproved', isApproved);
-    
+
     const dateRange = getDateRange();
     if (dateRange.start) params.append('startDate', dateRange.start);
     if (dateRange.end) params.append('endDate', dateRange.end);
-    
     return params.toString();
   };
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const queryString = buildQueryString();
       const response = await requestHandler.get(
-        `${endpointsPath.product}/admin?${queryString}`,
+        `${endpointsPath.product}/admin?${buildQueryString()}`,
         true
       );
-      
+
       if (response.statusCode === 200 && response.result?.data) {
         setProducts(response.result.data);
         setTotalPages(response.result.totalPages || 1);
@@ -103,27 +105,6 @@ const Products = () => {
     }
   };
 
-  const handleEdit = (product) => {
-    setFormData(product);
-    setFormModalOpen(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
-    try {
-      const response = await requestHandler.deleteReq(`${endpointsPath.product}/${id}`, true);
-      if (response.statusCode === 200) {
-        toast.success('Product deleted successfully');
-        fetchProducts();
-      } else {
-        toast.error(response.result?.message || 'Failed to delete product');
-      }
-    } catch (err) {
-      console.error('Delete failed:', err);
-      toast.error('Failed to delete product');
-    }
-  };
-
   const viewProductDetails = (product) => {
     window.location.href = `/products/${product.id}/details`;
   };
@@ -131,7 +112,7 @@ const Products = () => {
   const handleDateFilterChange = (value) => {
     setDateFilter(value);
     setShowDateInputs(value === 'custom');
-    setPage(1); // Reset to first page when filter changes
+    setPage(1);
   };
 
   const clearFilters = () => {
@@ -159,105 +140,142 @@ const Products = () => {
     fetchProducts();
   }, [searchTerm, page, pageSize, isAvailable, isApproved, dateFilter]);
 
-  // Re-fetch when custom dates change
   useEffect(() => {
     if (dateFilter === 'custom' && startDate && endDate) {
       const timer = setTimeout(() => {
         handleApplyCustomDate();
-      }, 500); // Debounce to prevent too many requests
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [startDate, endDate]);
 
-  // Calculate total stock quantity for each product
-  const productsWithStock = useMemo(() => {
-    return products.map(product => {
-      const totalVariantStock = product.variantsDto?.reduce((sum, variant) => 
-        sum + (variant.stockQuantity || 0), 0) || 0;
-      
-      const totalStock = totalVariantStock;
-      
-      const variantNames = product.variantsDto
-        ?.map(variant => variant.name?.trim())
-        .filter(name => name && name !== '')
-        .join(', ') || 'No variants';
+  const productsWithStock = useMemo(
+    () =>
+      products.map((product) => {
+        const totalStock =
+          product.variantsDto?.reduce((sum, variant) => sum + (variant.stockQuantity || 0), 0) || 0;
 
-      return {
-        ...product,
-        totalStock,
-        variantNames
-      };
-    });
-  }, [products]);
+        return {
+          ...product,
+          totalStock,
+        };
+      }),
+    [products]
+  );
+
+  const summaryStats = useMemo(() => {
+    const approvedCount = productsWithStock.filter((item) => item.isApproved).length;
+    const availableCount = productsWithStock.filter((item) => item.isAvailable).length;
+    const lowStockCount = productsWithStock.filter(
+      (item) => item.totalStock > 0 && item.totalStock <= 10
+    ).length;
+
+    return [
+      { label: 'Records', value: totalRecords || 0, helper: `${totalPages} pages` },
+      { label: 'Approved', value: approvedCount, helper: 'Live ready' },
+      { label: 'Available', value: availableCount, helper: 'Shop visible' },
+      { label: 'Low stock', value: lowStockCount, helper: 'Needs attention' },
+    ];
+  }, [productsWithStock, totalPages, totalRecords]);
+
+  const activeFilterCount = [isAvailable, isApproved, dateFilter !== 'all' ? dateFilter : null].filter(Boolean)
+    .length;
 
   if (!searchTerm && loading) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="ml-3">Loading products...</span>
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 shadow-sm">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-orange-200 border-t-orange-500" />
+          <span className="text-sm font-medium text-slate-600">Loading product workspace...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">Products Management</h1>
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-600">
-            Total: {totalRecords} products
-          </div>
+    <ProductWorkspaceShell
+      eyebrow="Products"
+      title="Catalog command center"
+      description="Manage the full product catalog from one place, including stock visibility, approval status, featured placement, limited offers, and VAT settings."
+      stats={summaryStats}
+      actions={
+        <>
           <Link
-            to={'/products/new'}
-            className={ClassStyle.button}
+            to="/products/new"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(249,115,22,0.28)] transition hover:bg-[#ea580c]"
           >
-            + New Product
+            <PackagePlus className="h-4 w-4" />
+            New product
           </Link>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Filters</h2>
+          <Link
+            to="/products/featured"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-200 hover:text-orange-600"
+          >
+            <Star className="h-4 w-4" />
+            Featured
+          </Link>
+          <Link
+            to="/products/limited-offers"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-200 hover:text-orange-600"
+          >
+            <Sparkles className="h-4 w-4" />
+            Limited offers
+          </Link>
+          <Link
+            to="/products/vat"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-200 hover:text-orange-600"
+          >
+            <Percent className="h-4 w-4" />
+            VAT
+          </Link>
+        </>
+      }
+    >
+      <ProductSurface>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-orange-600">
+              <Filter className="h-3.5 w-3.5" />
+              Filter stack
+            </div>
+            <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
+              Narrow the catalog
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Search by keyword and combine availability, approval, and date windows to surface the exact products you want to review.
+            </p>
+          </div>
           <button
             onClick={clearFilters}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-orange-200 hover:text-orange-600"
           >
-            Clear all filters
+            Clear filters
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Search Products
-            </label>
-            <div className="flex items-center">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="xl:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-slate-700">Search products</label>
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-sm">
+              <Search className="h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Name, description, brand..."
-                className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
               />
-              {loading && <Spinner className="ml-2" />}
+              {loading ? <Spinner size="sm" /> : null}
             </div>
           </div>
 
-          {/* Availability Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Availability
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Availability</label>
             <select
-              className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-orange-300"
               value={isAvailable === null ? 'all' : isAvailable.toString()}
               onChange={(e) => {
                 const value = e.target.value;
@@ -265,19 +283,16 @@ const Products = () => {
                 setPage(1);
               }}
             >
-              <option value="all">All Status</option>
-              <option value="true">Available Only</option>
-              <option value="false">Unavailable Only</option>
+              <option value="all">All status</option>
+              <option value="true">Available only</option>
+              <option value="false">Unavailable only</option>
             </select>
           </div>
 
-          {/* Approval Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Approval Status
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Approval</label>
             <select
-              className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-orange-300"
               value={isApproved === null ? 'all' : isApproved.toString()}
               onChange={(e) => {
                 const value = e.target.value;
@@ -285,224 +300,235 @@ const Products = () => {
                 setPage(1);
               }}
             >
-              <option value="all">All Status</option>
-              <option value="true">Approved Only</option>
-              <option value="false">Pending Only</option>
+              <option value="all">All status</option>
+              <option value="true">Approved only</option>
+              <option value="false">Pending only</option>
             </select>
           </div>
 
-          {/* Date Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date Range
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Date range</label>
             <select
-              className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-orange-300"
               value={dateFilter}
               onChange={(e) => handleDateFilterChange(e.target.value)}
             >
-              <option value="all">All Time</option>
+              <option value="all">All time</option>
               <option value="today">Today</option>
-              <option value="last7days">Last 7 Days</option>
-              <option value="last30days">Last 30 Days</option>
-              <option value="thismonth">This Month</option>
-              <option value="custom">Custom Range</option>
+              <option value="last7days">Last 7 days</option>
+              <option value="last30days">Last 30 days</option>
+              <option value="thismonth">This month</option>
+              <option value="custom">Custom range</option>
             </select>
           </div>
         </div>
 
-        {/* Custom Date Inputs */}
-        {showDateInputs && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+        {showDateInputs ? (
+          <div className="mt-4 grid grid-cols-1 gap-4 rounded-[22px] border border-orange-100 bg-orange-50/60 p-4 md:grid-cols-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Start date</label>
               <input
                 type="date"
-                className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+                className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 max={endDate || undefined}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">End date</label>
               <input
                 type="date"
-                className="border border-gray-300 px-3 py-2 rounded-lg w-full"
+                className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate || undefined}
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="flex items-end">
               <button
                 onClick={handleApplyCustomDate}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="w-full rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!startDate || !endDate}
               >
-                Apply Date Range
+                Apply range
               </button>
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
 
-      {/* Active Filters Display */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {isAvailable !== null && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-            {isAvailable ? 'Available' : 'Unavailable'}
-            <button
-              onClick={() => setIsAvailable(null)}
-              className="ml-2 text-blue-600 hover:text-blue-800"
-            >
-              ×
-            </button>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            {activeFilterCount} active filter{activeFilterCount === 1 ? '' : 's'}
           </span>
-        )}
-        {isApproved !== null && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-            {isApproved ? 'Approved' : 'Pending'}
-            <button
-              onClick={() => setIsApproved(null)}
-              className="ml-2 text-green-600 hover:text-green-800"
-            >
-              ×
-            </button>
-          </span>
-        )}
-        {dateFilter !== 'all' && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800">
-            {dateFilter === 'today' && 'Today'}
-            {dateFilter === 'last7days' && 'Last 7 Days'}
-            {dateFilter === 'last30days' && 'Last 30 Days'}
-            {dateFilter === 'thismonth' && 'This Month'}
-            {dateFilter === 'custom' && `Custom: ${startDate} to ${endDate}`}
-            <button
-              onClick={() => {
-                setDateFilter('all');
-                setStartDate('');
-                setEndDate('');
-                setShowDateInputs(false);
-              }}
-              className="ml-2 text-purple-600 hover:text-purple-800"
-            >
-              ×
-            </button>
-          </span>
-        )}
-      </div>
+          {isAvailable !== null ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              {isAvailable ? 'Available' : 'Unavailable'}
+            </span>
+          ) : null}
+          {isApproved !== null ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+              {isApproved ? 'Approved' : 'Pending'}
+            </span>
+          ) : null}
+          {dateFilter !== 'all' ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700">
+              {dateFilter === 'custom' ? `${startDate} to ${endDate}` : dateFilter}
+            </span>
+          ) : null}
+        </div>
+      </ProductSurface>
 
-      {/* Products List */}
-      <div className="bg-white rounded-lg shadow-sm border p-4">
+      <ProductSurface>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-950">
+              Product records
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Click any card to inspect details, variants, pricing, and approval history.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
+            <Boxes className="h-3.5 w-3.5" />
+            {productsWithStock.length} item{productsWithStock.length === 1 ? '' : 's'} on this page
+          </div>
+        </div>
+
         {productsWithStock.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-4">No products found</div>
-            <button
-              onClick={fetchProducts}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Refresh
-            </button>
+          <div className="mt-6 rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+            <p className="text-lg font-semibold text-slate-700">No products found</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Try adjusting the current filters or create a new product.
+            </p>
+            <div className="mt-5 flex justify-center gap-3">
+              <button
+                onClick={fetchProducts}
+                className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:border-orange-200 hover:text-orange-600"
+              >
+                Refresh
+              </button>
+              <Link
+                to="/products/new"
+                className="rounded-2xl bg-[#f97316] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ea580c]"
+              >
+                Create product
+              </Link>
+            </div>
           </div>
         ) : (
-          <>
-            <div className="grid gap-4">
-              {productsWithStock.map((product) => (
-                <div 
-                  key={product.id} 
-                  className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => viewProductDetails(product)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-lg font-semibold">{product.name}</h2>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          product.isApproved 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {product.isApproved ? 'Approved' : 'Pending Approval'}
-                        </span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          product.isAvailable 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {product.isAvailable ? 'Available' : 'Unavailable'}
-                        </span>
+          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            {productsWithStock.map((product) => (
+              <button
+                key={product.id}
+                type="button"
+                onClick={() => viewProductDetails(product)}
+                className="group rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_18px_34px_rgba(15,23,42,0.08)]"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="truncate text-lg font-semibold tracking-tight text-slate-950">
+                        {product.name}
+                      </h3>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          product.isApproved
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {product.isApproved ? 'Approved' : 'Pending'}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          product.isAvailable
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-rose-50 text-rose-700'
+                        }`}
+                      >
+                        {product.isAvailable ? 'Available' : 'Unavailable'}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+                      {product.description || 'No description provided for this product yet.'}
+                    </p>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Stock</p>
+                        <p className="mt-2 text-lg font-semibold text-slate-900">
+                          {product.totalStock.toLocaleString()}
+                        </p>
                       </div>
-                      
-                      <p className="text-gray-600 text-sm mb-3">{product.description?.substring(0, 100)}...</p>
-                      
-                      <div className="mt-2 space-y-1">
-                        <div className="flex items-center">
-                          <span className="font-medium text-sm">Total Stock:</span>
-                          <span className="ml-2 text-sm">
-                            {product.totalStock.toLocaleString()} units
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <span className="font-medium text-sm">Variants:</span>
-                          <span className="ml-2 text-sm">
-                            {product.variantsDto?.length || 0} variant(s)
-                          </span>
-                        </div>
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Variants</p>
+                        <p className="mt-2 text-lg font-semibold text-slate-900">
+                          {product.variantsDto?.length || 0}
+                        </p>
                       </div>
                     </div>
-                    
-                    {product.images?.length > 0 && (
-                      <img
-                        src={product.images[0].imageUrl}
-                        alt={product.images[0].altText || product.name}
-                        className="w-20 h-20 object-cover rounded ml-4"
-                      />
-                    )}
+
+                    {product.variantsDto?.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {product.variantsDto.slice(0, 3).map((variant, index) => (
+                          <span
+                            key={variant.id || index}
+                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                          >
+                            {[variant.name, variant.color, variant.size]
+                              .filter((value) => value && value !== 'null')
+                              .join(' / ') || `Variant ${index + 1}`}
+                          </span>
+                        ))}
+                        {product.variantsDto.length > 3 ? (
+                          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700">
+                            +{product.variantsDto.length - 3} more
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
 
-                  {/* Show individual variant details if needed */}
-                  {product.variantsDto?.length > 0 && (
-                    <div className="mt-3 border-t pt-3">
-                      <h4 className="font-medium text-sm mb-2">Variant Details:</h4>
-                      <div className="space-y-2">
-                        {product.variantsDto.map((variant, index) => (
-                          <div key={variant.id || index} className="text-xs bg-gray-50 p-2 rounded">
-                            <div className="flex justify-between">
-                              <span>Variant {index + 1}:</span>
-                              <span>{variant.stockQuantity} units</span>
-                            </div>
-                            {variant.name && variant.name != "null" && (
-                              <div className="text-gray-600">Name: {variant.name}</div>
-                            )}
-                            {variant.color && variant.color != "null" && ( 
-                              <div className="text-gray-600">Color: {variant.color}</div>
-                            )}
-                            {variant.size && variant.size != "null" && (
-                              <div className="text-gray-600">Size: {variant.size}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                  {product.images?.length > 0 ? (
+                    <img
+                      src={product.images[0].imageUrl}
+                      alt={product.images[0].altText || product.name}
+                      className="h-24 w-24 rounded-2xl object-cover ring-1 ring-slate-200"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                      <Boxes className="h-5 w-5" />
                     </div>
                   )}
-                  
-                  <div className="mt-3 text-xs text-gray-500">
-                    Created: {new Date(product.dateCreated).toLocaleDateString()}
-                  </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
 
-      <div className="mt-6">
+                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {new Date(product.dateCreated).toLocaleDateString()}
+                    </span>
+                    {product.isApproved ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600">
+                        <CircleCheck className="h-3.5 w-3.5" />
+                        Ready
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600">
+                    Open details
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </ProductSurface>
+
+      <ProductSurface className="pt-4">
         <Pagination
           currentPage={page}
           totalPages={totalPages}
@@ -510,8 +536,8 @@ const Products = () => {
           pageSize={pageSize}
           onPageSizeChange={setPageSize}
         />
-      </div>
-    </div>
+      </ProductSurface>
+    </ProductWorkspaceShell>
   );
 };
 

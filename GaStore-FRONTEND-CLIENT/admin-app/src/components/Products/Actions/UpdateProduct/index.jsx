@@ -9,6 +9,7 @@ import endpointsPath from '../../../../constants/EndpointsPath';
 import Spinner from '../../../../utils/loader';
 import { fetchTags } from '../../../Tags/Actions/TagService';
 import { fetchTagsByProductId } from '../../../Tags/Actions/TaggedProductService';
+import ProductWorkspaceShell, { ProductSurface } from '../../ProductWorkspaceShell';
 
 const steps = [
   { id: 1, title: 'Product Info' },
@@ -342,9 +343,10 @@ if (spec) {
     switch (step) {
       case 1:
         return (
-          <div id="step-1" ref={step1Ref} className="p-6 border rounded-lg">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">1</span>
+          <ProductSurface id="step-1" className="scroll-mt-24">
+          <div ref={step1Ref} className="p-0">
+            <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2">1</span>
               {steps[0].title}
             </h2>
             <StepOneProductInfo
@@ -359,12 +361,14 @@ if (spec) {
             productId={productId}
             />
           </div>
+          </ProductSurface>
         );
       case 2:
         return (
-          <div id="step-2" ref={step2Ref} className="p-6 border rounded-lg">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">2</span>
+          <ProductSurface id="step-2" className="scroll-mt-24">
+          <div ref={step2Ref} className="p-0">
+            <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2">2</span>
               {steps[1].title}
             </h2>
             <StepTwoVariant
@@ -378,6 +382,7 @@ if (spec) {
           isUpdate={true}
         />
           </div>
+          </ProductSurface>
         );
 
         
@@ -393,9 +398,10 @@ if (spec) {
         );*/
       case 3:
         return (
-          <div id="step-3" ref={step3Ref} className="p-6 border rounded-lg">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-2">3</span>
+          <ProductSurface id="step-3" className="scroll-mt-24">
+          <div ref={step3Ref} className="p-0">
+            <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-[#f97316] text-white rounded-full flex items-center justify-center mr-2">3</span>
               {steps[2].title}
             </h2>
             <StepThreeSpecification
@@ -407,6 +413,7 @@ if (spec) {
             isUpdate={true}
           />
           </div>
+          </ProductSurface>
         );
       default:
         return null;
@@ -414,45 +421,54 @@ if (spec) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 p-4 bg-white rounded-lg shadow-md flex flex-col lg:flex-row gap-6">
+    <ProductWorkspaceShell
+      eyebrow="Products"
+      title="Update product"
+      description="Refine product information, variants, and specifications without losing track of where you are in the editing workflow."
+      stats={[
+        { label: 'Steps', value: steps.length, helper: 'Edit flow' },
+        { label: 'Current step', value: activeStep, helper: steps[activeStep - 1]?.title },
+        { label: 'Product', value: productId ? 'Loaded' : 'Missing', helper: 'Record' },
+      ]}
+    >
+    <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
    <Spinner loading={loading} />
       {/* Left Side Navigation */}
-      <div className="w-full lg:w-1/4 mb-6 lg:mb-0">
-      <div className="lg:sticky lg:top-24 bg-white p-4 rounded-lg border shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Update Product</h2>
-        <p className="text-gray-600 text-sm mb-6">Fill out all the required information to update product</p>
+      <ProductSurface className="h-fit lg:sticky lg:top-24 mb-6 lg:mb-0">
+        <h2 className="text-xl font-bold text-slate-800 mb-4">Update product</h2>
+        <p className="text-slate-600 text-sm mb-6">Jump between sections from the sidebar and save your changes when the record is ready.</p>
         
         <div className="space-y-2">
           {steps.map(s => (
             <button
               key={s.id}
               type="button"
-              className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center
+              className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-medium transition-colors flex items-center
                 ${s.id === activeStep 
-                  ? 'bg-blue-100 border border-blue-300 text-blue-700 shadow-md' 
-                  : 'border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                  ? 'bg-orange-50 border border-orange-200 text-orange-700 shadow-sm' 
+                  : 'border border-slate-200 text-slate-700 hover:bg-slate-50'}`}
               onClick={() => scrollToStep(s.id)}
             >
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 ${s.id === activeStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 shrink-0 ${s.id === activeStep ? 'bg-[#f97316] text-white' : 'bg-slate-200 text-slate-600'}`}>
                 {s.id}
               </span>
               <span className="truncate">{s.title}</span>
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </ProductSurface>
 
-      <div className="w-full lg:w-3/4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">{steps[step - 1].title}</h2>
-          <p className="text-gray-500 text-sm mt-1">
+      <div className="w-full">
+        <ProductSurface className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-800">{steps[step - 1].title}</h2>
+          <p className="text-slate-500 text-sm mt-1">
             Step {step} of {steps.length}
           </p>
-        </div>
+        </ProductSurface>
         {renderStep()}
       </div>
     </div>
+    </ProductWorkspaceShell>
   );
 };
 
