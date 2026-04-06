@@ -11,6 +11,29 @@ const statusStyles = {
   Draft: "bg-slate-100 text-slate-700",
 };
 
+const documentCards = [
+  {
+    key: "livePictureUrl",
+    label: "Live selfie",
+  },
+  {
+    key: "validIdUrl",
+    label: "Valid ID",
+  },
+  {
+    key: "businessCertificateUrl",
+    label: "Business certificate",
+  },
+];
+
+const isPdfDocument = (url = "") => {
+  try {
+    return new URL(url).pathname.toLowerCase().endsWith(".pdf");
+  } catch {
+    return url.toLowerCase().includes(".pdf");
+  }
+};
+
 export default function MarketplaceModeration({ type = "kyc" }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,6 +141,9 @@ export default function MarketplaceModeration({ type = "kyc" }) {
                           <p className="text-sm text-slate-600">Email: {item.vendorEmail || "No email"}</p>
                           <p className="text-sm text-slate-600">ID Type: {item.idType || "Not supplied"}</p>
                           <p className="text-sm text-slate-600">Business Address: {item.businessAddress || "Not supplied"}</p>
+                          <p className="text-sm text-slate-600">
+                            Submitted: {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : "Not recorded"}
+                          </p>
                         </>
                       ) : (
                         <>
@@ -129,7 +155,7 @@ export default function MarketplaceModeration({ type = "kyc" }) {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3">
                       <button
                         type="button"
                         disabled={submittingId === item.id}
@@ -146,11 +172,61 @@ export default function MarketplaceModeration({ type = "kyc" }) {
                       >
                         Reject
                       </button>
-                    </div>
                   </div>
                 </div>
-              );
-            })}
+
+                {isKyc ? (
+                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {documentCards.map(({ key, label }) => {
+                      const fileUrl = item[key];
+
+                      if (!fileUrl) {
+                        return (
+                          <div key={key} className="rounded-[20px] border border-dashed border-slate-300 bg-white p-4">
+                            <p className="text-sm font-semibold text-slate-900">{label}</p>
+                            <p className="mt-2 text-sm text-slate-500">No file uploaded.</p>
+                          </div>
+                        );
+                      }
+
+                      const isPdf = isPdfDocument(fileUrl);
+
+                      return (
+                        <div key={key} className="rounded-[20px] border border-slate-200 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{label}</p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                                {isPdf ? "PDF document" : "Image preview"}
+                              </p>
+                            </div>
+                            <a
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-semibold text-orange-600 transition hover:text-orange-700"
+                            >
+                              Open file
+                            </a>
+                          </div>
+
+                          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                            {isPdf ? (
+                              <div className="flex min-h-44 items-center justify-center p-6 text-center text-sm text-slate-600">
+                                PDF preview is not embedded here. Use "Open file" to inspect the uploaded document.
+                              </div>
+                            ) : (
+                              <img src={fileUrl} alt={label} className="h-44 w-full object-cover" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
           </div>
         )}
       </div>

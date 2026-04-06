@@ -109,6 +109,15 @@ namespace GaStore.Core.Services.Implementations
                     .Include(x => x.User)
                     .FirstOrDefaultAsync(x => x.UserId == userId);
 
+                if (kyc != null && (kyc.Status == KycStatus.Pending || kyc.Status == KycStatus.Approved))
+                {
+                    response.StatusCode = 400;
+                    response.Message = kyc.Status == KycStatus.Pending
+                        ? "Your KYC submission is currently pending verification and cannot be updated."
+                        : "Your KYC has already been approved and cannot be resubmitted.";
+                    return response;
+                }
+
                 if (kyc == null)
                 {
                     kyc = new VendorKyc

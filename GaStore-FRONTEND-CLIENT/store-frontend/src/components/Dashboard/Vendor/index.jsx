@@ -31,6 +31,8 @@ const kycToneMap = {
   },
 };
 
+const idTypeOptions = ["National ID", "International Passport", "Driver License"];
+
 const buildFormData = (values, submitForReview = false) => {
   const formData = new FormData();
 
@@ -151,6 +153,8 @@ export default function VendorDashboard() {
     return kycToneMap[key] || kycToneMap.NotStarted;
   }, [status]);
   const StatusIcon = kycMeta.icon;
+  const canEditKyc = !status?.kycStatus || status.kycStatus === "NotStarted" || status.kycStatus === "Rejected";
+  const canSubmitKyc = status?.kycStatus === "NotStarted" || status?.kycStatus === "Rejected";
 
   const activateVendor = async () => {
     setSaving(true);
@@ -328,12 +332,21 @@ export default function VendorDashboard() {
             </div>
           ) : null}
 
+          {!canEditKyc ? (
+            <div className="mt-5 rounded-[22px] border border-[#d6e4ff] bg-[#f8fbff] px-4 py-3 text-sm text-[#1e3a8a]">
+              {status?.kycStatus === "Pending"
+                ? "Your KYC has already been submitted and is pending verification. You cannot edit or resubmit it until review is complete."
+                : "Your KYC has already been approved. Resubmission is disabled."}
+            </div>
+          ) : null}
+
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
               <span className="text-sm font-medium text-gray-700">Business name</span>
               <input
                 value={form.businessName}
                 onChange={(event) => setForm((current) => ({ ...current, businessName: event.target.value }))}
+                disabled={!canEditKyc}
                 className="w-full rounded-2xl border border-[#e7ddd3] bg-[#fcfbf8] px-4 py-3 text-sm outline-none focus:border-[#f97316]"
                 placeholder="Registered business name"
               />
@@ -341,12 +354,19 @@ export default function VendorDashboard() {
 
             <label className="space-y-2">
               <span className="text-sm font-medium text-gray-700">ID type</span>
-              <input
+              <select
                 value={form.idType}
                 onChange={(event) => setForm((current) => ({ ...current, idType: event.target.value }))}
+                disabled={!canEditKyc}
                 className="w-full rounded-2xl border border-[#e7ddd3] bg-[#fcfbf8] px-4 py-3 text-sm outline-none focus:border-[#f97316]"
-                placeholder="National ID, Passport, Driver's License..."
-              />
+              >
+                <option value="">Select ID type</option>
+                {idTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="space-y-2 md:col-span-2">
@@ -354,6 +374,7 @@ export default function VendorDashboard() {
               <textarea
                 value={form.businessAddress}
                 onChange={(event) => setForm((current) => ({ ...current, businessAddress: event.target.value }))}
+                disabled={!canEditKyc}
                 className="min-h-28 w-full rounded-2xl border border-[#e7ddd3] bg-[#fcfbf8] px-4 py-3 text-sm outline-none focus:border-[#f97316]"
                 placeholder="Registered business address"
               />
@@ -366,6 +387,7 @@ export default function VendorDashboard() {
                   <button
                     type="button"
                     onClick={openCamera}
+                    disabled={!canEditKyc}
                     className="inline-flex items-center gap-2 rounded-full bg-[#f97316] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#ea580c]"
                   >
                     <FiCamera />
@@ -454,6 +476,7 @@ export default function VendorDashboard() {
               <input
                 type="file"
                 accept=".pdf,image/*"
+                disabled={!canEditKyc}
                 onChange={(event) => setForm((current) => ({ ...current, validId: event.target.files?.[0] || null }))}
                 className="block w-full rounded-2xl border border-[#e7ddd3] bg-[#fcfbf8] px-4 py-3 text-sm"
               />
@@ -464,6 +487,7 @@ export default function VendorDashboard() {
               <input
                 type="file"
                 accept=".pdf,image/*"
+                disabled={!canEditKyc}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, businessCertificate: event.target.files?.[0] || null }))
                 }
@@ -475,7 +499,7 @@ export default function VendorDashboard() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || !canEditKyc}
               onClick={() => saveKyc(false)}
               className="rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 disabled:opacity-60"
             >
@@ -483,7 +507,7 @@ export default function VendorDashboard() {
             </button>
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || !canSubmitKyc}
               onClick={() => saveKyc(true)}
               className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#ea580c] disabled:opacity-60"
             >

@@ -142,17 +142,6 @@ export default function PremiumLandingPage() {
             }}
           >
             <div className="flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
-              {heroBanner?.title ? (
-                <p className="font-[cursive] text-4xl leading-none text-[#ffd95c] md:text-6xl">{heroBanner.title}</p>
-              ) : null}
-              <h1 className="mt-4 text-4xl font-black leading-none md:text-6xl">
-                Discover <span className="text-[#ffffff]">GaStore Essentials</span>
-              </h1>
-              <p className="mt-4 max-w-md text-sm text-white/90 md:text-base">
-                {heroBanner?.hasLink && heroBanner?.link
-                  ? "Explore the latest campaign curated from your live storefront content."
-                  : "Discover premium wellness picks powered by live catalog data from your store."}
-              </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={heroBanner?.hasLink && heroBanner?.link ? heroBanner.link : "/product"}
