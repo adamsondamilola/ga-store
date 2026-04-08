@@ -53,6 +53,8 @@ namespace GaStore.Models.Database
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<Transaction> WalletTransactions { get; set; }
         public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<VendorEarning> VendorEarnings { get; set; }
+        public DbSet<VendorPayout> VendorPayouts { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
 
@@ -191,6 +193,58 @@ namespace GaStore.Models.Database
                 .HasOne(ba => ba.User)
                 .WithMany(u => u.BankAccounts)
                 .HasForeignKey(ba => ba.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasIndex(ve => ve.OrderItemId)
+                .IsUnique();
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasOne(ve => ve.Vendor)
+                .WithMany()
+                .HasForeignKey(ve => ve.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasOne(ve => ve.Order)
+                .WithMany()
+                .HasForeignKey(ve => ve.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasOne(ve => ve.OrderItem)
+                .WithMany()
+                .HasForeignKey(ve => ve.OrderItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasOne(ve => ve.Product)
+                .WithMany()
+                .HasForeignKey(ve => ve.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<VendorEarning>()
+                .HasOne(ve => ve.VendorPayout)
+                .WithMany(vp => vp.Earnings)
+                .HasForeignKey(ve => ve.VendorPayoutId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<VendorPayout>()
+                .HasOne(vp => vp.Vendor)
+                .WithMany()
+                .HasForeignKey(vp => vp.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorPayout>()
+                .HasOne(vp => vp.BankAccount)
+                .WithMany()
+                .HasForeignKey(vp => vp.BankAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<VendorPayout>()
+                .HasOne(vp => vp.ProcessedByAdmin)
+                .WithMany()
+                .HasForeignKey(vp => vp.ProcessedByAdminId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ----------------------------

@@ -52,7 +52,7 @@ const fetchData = async (url, options) => {
     }
     const response = await fetch(baseUrl + url, options);
     const result = await response.json();
-    const statusCode = response.status < 300? 200 : response.status;
+    const statusCode = response.status < 300 || result.statusCode < 300 ? 200 : response.status;
 
     //console.log('Success:', result);
 

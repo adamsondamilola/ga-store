@@ -104,6 +104,7 @@ builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IBankAccountService, BankAccountService>();
+builder.Services.AddScoped<IVendorEarningService, VendorEarningService>();
 builder.Services.AddScoped<IReferralService, ReferralService>();
 builder.Services.AddScoped<IReferralPurchaseService, ReferralPurchaseService>();
 builder.Services.AddScoped<IReferralCommissionService, ReferralCommissionService>();

@@ -50,6 +50,7 @@ import VouchersScreen from './screens/vouchers';
 import WebsiteContentScreen from './screens/website-content';
 import MarketplaceKycScreen from './screens/marketplace/kyc';
 import MarketplaceProductsScreen from './screens/marketplace/products';
+import MarketplacePayoutsScreen from './screens/marketplace/payouts';
 
 function App() {
   return (
@@ -169,6 +170,7 @@ function App() {
         <Route path="/marketplace" element={<DashboardLayout />}>
         <Route path="/marketplace/kyc" element={<MarketplaceKycScreen />} />
         <Route path="/marketplace/products" element={<MarketplaceProductsScreen />} />
+        <Route path="/marketplace/payouts" element={<MarketplacePayoutsScreen />} />
         <Route path='*' element={<NotFoundPage/>} />
         </Route>
 

@@ -9,6 +9,32 @@ import ClassStyle from '../../class-styles';
 import Spinner from '../../utils/loader';
 import { fetchTaggedProducts, fetchTagsByProductId } from '../Tags/Actions/TaggedProductService';
 
+const normalizeVariantData = (variantData = {}) => ({
+  ...variantData,
+  pricingTiers: Array.isArray(variantData.pricingTiers)
+    ? variantData.pricingTiers
+    : Array.isArray(variantData.pricingTiersDto)
+      ? variantData.pricingTiersDto
+      : [],
+  images: Array.isArray(variantData.images) ? variantData.images : [],
+});
+
+const normalizeProductData = (productData = {}) => ({
+  ...productData,
+  brand: productData.brand || {},
+  category: productData.category || {},
+  subCategory: productData.subCategory || {},
+  productType: productData.productType || {},
+  productSubType: productData.productSubType || {},
+  specifications: productData.specifications || {},
+  user: productData.user || {},
+  approver: productData.approver || {},
+  images: Array.isArray(productData.images) ? productData.images : [],
+  variants: Array.isArray(productData.variants)
+    ? productData.variants.map(normalizeVariantData)
+    : [],
+});
+
 const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -47,11 +73,11 @@ const ProductDetailPage = () => {
     setLoading(true);
     try {
       const response = await requestHandler.get(
-        `${endpointsPath.product}/${productId}`,
+        `${endpointsPath.product}/admin/${productId}`,
         true
       );
       if (response.statusCode === 200 && response.result?.data) {
-        const productData = response.result.data;
+        const productData = normalizeProductData(response.result.data);
         setProduct(productData);
         
         // Set default selected variant
@@ -336,7 +362,7 @@ const ProductDetailPage = () => {
       )}
 
       {/* Disclaimer */}
-      {product.specifications.disclaimer && (
+      {product?.specifications?.disclaimer && (
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Disclaimer</h3>
           <div className="prose max-w-none">
@@ -641,7 +667,7 @@ const ProductDetailPage = () => {
 {/* Approver Information */}
             <div className="space-y-4">
               <h4 className="font-semibold text-lg border-b pb-2">Approved By</h4>
-              {product.approver.email? 
+              {product?.approver?.email ? 
               <div>
               {product.approver.firstName && (
                 <div>

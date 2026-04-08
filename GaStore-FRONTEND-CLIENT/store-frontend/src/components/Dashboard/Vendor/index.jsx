@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { FiCamera, FiCheckCircle, FiClock, FiFileText, FiPlusCircle, FiRefreshCw, FiShield, FiUploadCloud, FiXCircle } from "react-icons/fi";
+import { FiCamera, FiCheckCircle, FiClock, FiCreditCard, FiDollarSign, FiFileText, FiPlusCircle, FiRefreshCw, FiShield, FiUploadCloud, FiXCircle } from "react-icons/fi";
 import { DashboardPageShell, DashboardPanel, DashboardStatCard } from "../PageShell";
 import requestHandler from "@/utils/requestHandler";
 import endpointsPath from "@/constants/EndpointsPath";
@@ -49,6 +49,8 @@ const buildFormData = (values, submitForReview = false) => {
 export default function VendorDashboard() {
   const [status, setStatus] = useState(null);
   const [products, setProducts] = useState([]);
+  const [overview, setOverview] = useState(null);
+  const [bankAccounts, setBankAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -61,6 +63,16 @@ export default function VendorDashboard() {
     validId: null,
     businessCertificate: null,
   });
+  const [bankForm, setBankForm] = useState({
+    id: "",
+    bankName: "",
+    bankCode: "",
+    accountNumber: "",
+    accountName: "",
+    currency: "NGN",
+    preferredPayoutGateway: "Paystack",
+    isDefaultPayoutAccount: true,
+  });
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -68,9 +80,11 @@ export default function VendorDashboard() {
   const fetchVendorData = async () => {
     try {
       setLoading(true);
-      const [statusResp, productsResp] = await Promise.all([
+      const [statusResp, productsResp, overviewResp, bankAccountsResp] = await Promise.all([
         requestHandler.get(`${endpointsPath.vendor}/kyc/status`, true),
         requestHandler.get(`${endpointsPath.vendor}/products?pageNumber=1&pageSize=10`, true),
+        requestHandler.get(`${endpointsPath.vendorEarnings}/mine/overview`, true),
+        requestHandler.get(`${endpointsPath.bankAccount}?pageNumber=1&pageSize=10`, true),
       ]);
 
       if (statusResp.statusCode === 200) {
@@ -86,6 +100,28 @@ export default function VendorDashboard() {
 
       if (productsResp.statusCode === 200) {
         setProducts(productsResp.result?.data || []);
+      }
+
+      if (overviewResp.statusCode === 200) {
+        setOverview(overviewResp.result?.data || null);
+      }
+
+      if (bankAccountsResp.statusCode === 200) {
+        const accounts = bankAccountsResp.result?.data || [];
+        setBankAccounts(accounts);
+        const defaultAccount = accounts.find((account) => account.isDefaultPayoutAccount) || accounts[0];
+        if (defaultAccount) {
+          setBankForm({
+            id: defaultAccount.id || "",
+            bankName: defaultAccount.bankName || "",
+            bankCode: defaultAccount.bankCode || "",
+            accountNumber: defaultAccount.accountNumber || "",
+            accountName: defaultAccount.accountName || "",
+            currency: defaultAccount.currency || "NGN",
+            preferredPayoutGateway: defaultAccount.preferredPayoutGateway || "Paystack",
+            isDefaultPayoutAccount: defaultAccount.isDefaultPayoutAccount ?? true,
+          });
+        }
       }
     } catch (error) {
       console.error("vendor dashboard fetch failed", error);
@@ -167,6 +203,35 @@ export default function VendorDashboard() {
       }
 
       toast.error(response.result?.message || "Unable to activate vendor account");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveBankAccount = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        bankName: bankForm.bankName,
+        bankCode: bankForm.bankCode,
+        accountNumber: bankForm.accountNumber,
+        accountName: bankForm.accountName,
+        currency: bankForm.currency,
+        preferredPayoutGateway: bankForm.preferredPayoutGateway,
+        isDefaultPayoutAccount: true,
+      };
+
+      const response = bankForm.id
+        ? await requestHandler.put(`${endpointsPath.bankAccount}/${bankForm.id}`, payload, true)
+        : await requestHandler.post(`${endpointsPath.bankAccount}`, payload, true);
+
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        toast.success("Payout account saved");
+        await fetchVendorData();
+        return;
+      }
+
+      toast.error(response.result?.message || "Unable to save payout account");
     } finally {
       setSaving(false);
     }
@@ -292,7 +357,7 @@ export default function VendorDashboard() {
         </>
       }
     >
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardStatCard
           label="Vendor account"
           value={status?.isVendor ? "Active" : "Inactive"}
@@ -313,6 +378,13 @@ export default function VendorDashboard() {
           note="Recent vendor product records"
           icon={FiUploadCloud}
           tone="bg-white text-gray-950"
+        />
+        <DashboardStatCard
+          label="Ready for payout"
+          value={`NGN ${Number(overview?.totalReadyForPayoutAmount || 0).toLocaleString()}`}
+          note={overview?.hasDefaultPayoutAccount ? "Weekend-ready earnings" : "Add payout account to qualify"}
+          icon={FiDollarSign}
+          tone="bg-[linear-gradient(135deg,#f97316,#ea580c)] text-white"
         />
       </div>
 
@@ -518,36 +590,99 @@ export default function VendorDashboard() {
         </DashboardPanel>
 
         <DashboardPanel>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Product Posting</p>
-          <h2 className="mt-2 text-2xl font-semibold text-gray-950">Readiness check</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">Payout Setup</p>
+          <h2 className="mt-2 text-2xl font-semibold text-gray-950">Weekend settlement</h2>
 
           <div className="mt-5 space-y-3">
             <div className="rounded-[22px] bg-[#fcfbf8] p-4">
-              <div className="text-sm font-semibold text-gray-950">Posting access</div>
+              <div className="text-sm font-semibold text-gray-950">Earnings snapshot</div>
               <div className="mt-2 text-sm text-gray-600">
-                {status?.canPost
-                  ? "Approved vendors can create and submit products for moderation."
-                  : "Post Product stays disabled until KYC is approved by an admin."}
+                {overview?.lastPayoutDate
+                  ? `Last payout was ${new Date(overview.lastPayoutDate).toLocaleDateString()}.`
+                  : "No payout has been processed yet."}
               </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-[#eee5dc] bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Outstanding net</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-950">
+                    NGN {Number(overview?.totalOutstandingAmount || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-[#eee5dc] bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">Next weekend payout</div>
+                  <div className="mt-1 text-lg font-semibold text-gray-950">
+                    {overview?.nextWeekendPayoutDate
+                      ? new Date(overview.nextWeekendPayoutDate).toLocaleDateString()
+                      : "Pending"}
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/customer/vendor/earnings"
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#f3d4bf] bg-white px-4 py-2 text-sm font-semibold text-[#c2410c] transition hover:bg-[#fff6ef]"
+              >
+                <FiDollarSign />
+                View earnings
+              </Link>
             </div>
 
             <div className="rounded-[22px] bg-[#fcfbf8] p-4">
-              <div className="text-sm font-semibold text-gray-950">Latest products</div>
-              <div className="mt-3 space-y-2">
-                {products.length > 0 ? (
-                  products.slice(0, 5).map((product) => (
-                    <div key={product.id} className="rounded-2xl border border-[#eee5dc] bg-white px-4 py-3">
-                      <div className="font-medium text-gray-950">{product.name}</div>
-                      <div className="mt-1 text-xs uppercase tracking-wide text-gray-500">
-                        {(product.reviewStatus || "Draft").replace(/([a-z])([A-Z])/g, "$1 $2")}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-[#e7ddd3] px-4 py-5 text-sm text-gray-500">
-                    No vendor products yet.
-                  </div>
-                )}
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-gray-950">Default payout account</div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gray-600">
+                  <FiCreditCard />
+                  {bankAccounts.length > 0 ? "Configured" : "Missing"}
+                </div>
+              </div>
+              <div className="mt-4 grid gap-4">
+                <input
+                  value={bankForm.bankName}
+                  onChange={(event) => setBankForm((current) => ({ ...current, bankName: event.target.value }))}
+                  className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                  placeholder="Bank name"
+                />
+                <input
+                  value={bankForm.bankCode}
+                  onChange={(event) => setBankForm((current) => ({ ...current, bankCode: event.target.value }))}
+                  className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                  placeholder="Bank code"
+                />
+                <input
+                  value={bankForm.accountNumber}
+                  onChange={(event) => setBankForm((current) => ({ ...current, accountNumber: event.target.value }))}
+                  className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                  placeholder="Account number"
+                />
+                <input
+                  value={bankForm.accountName}
+                  onChange={(event) => setBankForm((current) => ({ ...current, accountName: event.target.value }))}
+                  className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                  placeholder="Account name"
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    value={bankForm.currency}
+                    onChange={(event) => setBankForm((current) => ({ ...current, currency: event.target.value }))}
+                    className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                    placeholder="Currency"
+                  />
+                  <select
+                    value={bankForm.preferredPayoutGateway}
+                    onChange={(event) => setBankForm((current) => ({ ...current, preferredPayoutGateway: event.target.value }))}
+                    className="w-full rounded-2xl border border-[#e7ddd3] bg-white px-4 py-3 text-sm outline-none focus:border-[#f97316]"
+                  >
+                    <option value="Paystack">Paystack</option>
+                    <option value="Flutterwave">Flutterwave</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={saveBankAccount}
+                  disabled={saving}
+                  className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#ea580c] disabled:opacity-60"
+                >
+                  Save payout account
+                </button>
               </div>
             </div>
           </div>

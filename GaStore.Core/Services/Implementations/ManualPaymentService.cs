@@ -23,6 +23,7 @@ namespace GaStore.Core.Services.Implementations
         private readonly DatabaseContext _context;
         private readonly IImageUploadService _imageUploadService;
         private readonly IEmailService _emailService;
+        private readonly IVendorEarningService _vendorEarningService;
 
         public ManualPaymentService(
             IUnitOfWork unitOfWork,
@@ -30,7 +31,8 @@ namespace GaStore.Core.Services.Implementations
             ILogger<ManualPaymentService> logger,
             DatabaseContext context,
             IImageUploadService imageUploadService,
-            IEmailService emailService)
+            IEmailService emailService,
+            IVendorEarningService vendorEarningService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -38,6 +40,7 @@ namespace GaStore.Core.Services.Implementations
             _context = context;
             _imageUploadService = imageUploadService;
             _emailService = emailService;
+            _vendorEarningService = vendorEarningService;
         }
 
         public async Task<ServiceResponse<ManualPaymentDto>> CreatePendingManualPaymentAsync(Guid orderId, Guid userId, decimal amountExpected)
@@ -267,6 +270,11 @@ namespace GaStore.Core.Services.Implementations
                 await _unitOfWork.ManualPaymentRepository.Upsert(payment);
                 await _unitOfWork.OrderRepository.Upsert(payment.Order);
                 await _unitOfWork.CompletedAsync(adminUserId);
+
+                if (normalizedStatus == "Approved")
+                {
+                    await _vendorEarningService.ProcessOrderVendorEarningsAsync(payment.OrderId, adminUserId);
+                }
 
                 await NotifyUserAsync(payment);
 

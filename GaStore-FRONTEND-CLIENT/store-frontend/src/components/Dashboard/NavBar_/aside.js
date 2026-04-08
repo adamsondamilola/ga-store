@@ -17,6 +17,7 @@ import {
   FiSettings,
   FiShield,
   FiStar,
+  FiTrendingUp,
   FiUser,
   FiUsers,
   FiLock,
@@ -31,6 +32,7 @@ const primaryItems = [
   { href: "/customer/referrals", label: "Referrals", icon: FiUsers },
   { href: "/customer/wallet", label: "Commission", icon: FiDollarSign },
   { href: "/customer/vendor", label: "Vendor Hub", icon: FiShield },
+  { href: "/customer/vendor/earnings", label: "Vendor Earnings", icon: FiTrendingUp },
   { href: "/customer/vendor/products", label: "Vendor Products", icon: FiPackage },
 ];
 

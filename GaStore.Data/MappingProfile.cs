@@ -62,6 +62,20 @@ namespace GaStore.Data
 			// Transaction mappings
 			CreateMap<Transaction, TransactionDto>();
 			CreateMap<TransactionDto, Transaction>();
+            CreateMap<VendorEarning, VendorEarningDto>()
+                .ForMember(dest => dest.VendorName,
+                    opt => opt.MapFrom(src => src.Vendor != null ? $"{src.Vendor.FirstName} {src.Vendor.LastName}".Trim() : null));
+            CreateMap<VendorPayout, VendorPayoutDto>()
+                .ForMember(dest => dest.VendorName,
+                    opt => opt.MapFrom(src => src.Vendor != null ? $"{src.Vendor.FirstName} {src.Vendor.LastName}".Trim() : null))
+                .ForMember(dest => dest.BankName,
+                    opt => opt.MapFrom(src => src.BankAccount != null ? src.BankAccount.BankName : null))
+                .ForMember(dest => dest.AccountName,
+                    opt => opt.MapFrom(src => src.BankAccount != null ? src.BankAccount.AccountName : null))
+                .ForMember(dest => dest.AccountNumberMasked,
+                    opt => opt.MapFrom(src => src.BankAccount != null && !string.IsNullOrWhiteSpace(src.BankAccount.AccountNumber)
+                        ? "****" + src.BankAccount.AccountNumber.Substring(src.BankAccount.AccountNumber.Length - 4)
+                        : null));
 
 			// BankAccount mappings
 			CreateMap<BankAccount, BankAccountDto>();

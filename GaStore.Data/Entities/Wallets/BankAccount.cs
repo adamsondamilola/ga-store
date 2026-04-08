@@ -24,6 +24,9 @@ namespace GaStore.Data.Entities.Wallets
 		public string AccountName { get; set; } // Name associated with the bank account
 
 		[MaxLength(50)]
+		public string? BankCode { get; set; } // Gateway bank code used for payout validation/transfers
+
+		[MaxLength(50)]
 		public string? SwiftCode { get; set; } // SWIFT/BIC code (optional)
 
 		[MaxLength(50)]
@@ -34,6 +37,19 @@ namespace GaStore.Data.Entities.Wallets
 
 		[MaxLength(100)]
 		public string? Currency { get; set; } // Currency of the account (e.g., "USD", "NGN")
+
+		[MaxLength(50)]
+		public string? PreferredPayoutGateway { get; set; } // Paystack or Flutterwave
+
+		[MaxLength(100)]
+		public string? PaystackRecipientCode { get; set; }
+
+		[MaxLength(100)]
+		public string? FlutterwaveRecipientCode { get; set; }
+
+		public bool IsDefaultPayoutAccount { get; set; } = true;
+
+		public bool IsPayoutVerified { get; set; } = false;
 
 	}
 

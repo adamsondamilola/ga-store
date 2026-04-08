@@ -562,14 +562,21 @@ namespace GaStore.Core.Services.Implementations
                 var productType = await _unitOfWork.ProductTypeRepository.Get(x => x.Id == product.ProductTypeId);
                 var productSubType = await _unitOfWork.ProductSubTypeRepository.Get(x => x.Id == product.ProductSubTypeId);
                 var user = await _unitOfWork.UserRepository.GetById(product.UserId);
-				var approver = new User();
-				try
+				User? approver = null;
+				if (product.ApprovedBy.HasValue)
 				{
-                    approver = await _unitOfWork.UserRepository.GetById((Guid)product.ApprovedBy);
-                }
-				catch (Exception ex)
+					try
+					{
+						approver = await _unitOfWork.UserRepository.GetById(product.ApprovedBy.Value);
+					}
+					catch (Exception)
+					{
+						// no approver available yet
+					}
+				}
+				if (brand == null)
 				{
-					//no approver yet
+					brand = new Brand();
 				}
                 if (category == null)
 				{
@@ -597,6 +604,7 @@ namespace GaStore.Core.Services.Implementations
 					Id = product.Id,
 					Name = product.Name,
 					UserId = product.UserId,
+					VendorId = product.VendorId,
 					Description = product.Description,
 					Highlights = product.Highlights,
 					Weight = product.Weight,
@@ -604,6 +612,9 @@ namespace GaStore.Core.Services.Implementations
 					StockQuantity = product.StockQuantity,
 					IsAvailable = product.IsAvailable,
 					IsApproved = product.IsApproved,
+					IsPublished = product.IsPublished,
+					ReviewStatus = product.ReviewStatus,
+					ReviewRejectionReason = product.ReviewRejectionReason,
 					BrandId = product.BrandId,
                     CategoryId = product.CategoryId,
                     SubCategoryId = product.SubCategoryId,
@@ -612,6 +623,7 @@ namespace GaStore.Core.Services.Implementations
                     DateCreated = product.DateCreated,
 					DateApproved = product.DateApproved,
 					ApprovedBy = product.ApprovedBy,
+					ReviewedByAdminId = product.ReviewedByAdminId,
 					Brand = new ProductBrandDto
 					{
 						Id = brand.Id,
@@ -643,17 +655,41 @@ namespace GaStore.Core.Services.Implementations
                         Id = productSubType.Id,
                         Name = productSubType.Name
                     },
-                    User = user ?? new User(),
-					Approver = approver ?? new User(),
-					Images = images == null || images?.Count < 1 ? new List<ProductImage>() : images.Select(img => new ProductImage
+                    User = user == null ? null : new ProductUserSummaryDto
+                    {
+                        Id = user.Id,
+                        Username = user.Username,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Email = user.Email,
+                        IsAdmin = user.IsAdmin,
+                        IsSuperAdmin = user.IsSuperAdmin,
+                        IsVendor = user.IsVendor
+                    },
+					Approver = approver == null ? null : new ProductUserSummaryDto
 					{
-						Id = img.Id,
+						Id = approver.Id,
+						Username = approver.Username,
+						FirstName = approver.FirstName,
+						LastName = approver.LastName,
+						Email = approver.Email,
+						IsAdmin = approver.IsAdmin,
+						IsSuperAdmin = approver.IsSuperAdmin,
+						IsVendor = approver.IsVendor
+					},
+					Images = images == null || images.Count < 1 ? new List<ProductImageDto>() : images.Select(img => new ProductImageDto
+					{
 						ImageUrl = img.ImageUrl,
+						CloudinaryId = img.CloudinaryId,
+						DisplayOrder = img.DisplayOrder,
+						AltText = img.AltText,
 						ProductId = img.ProductId,
-						VariantId = img.VariantId
+						VariantId = img.VariantId,
+						Style = img.Style
 					}).ToList(),
 
-				Variants = variants.Count < 1? new List<ProductVariant>() : variants.OrderBy(w => w.Weight).Select(vr => new ProductVariant{
+				Variants = variants.Count < 1 ? new List<ProductVariantDto>() : variants.OrderBy(w => w.Weight).Select(vr => new ProductVariantDto
+				{
 					Id = vr.Id,
 					Name = vr.Name,
 					ProductId = vr.ProductId,
@@ -667,18 +703,59 @@ namespace GaStore.Core.Services.Implementations
 					StockSold = vr.StockSold,
                     Style = vr.Style,
 					BarCode = vr.BarCode,
-					PricingTiers = vr.PricingTiers,
+					PricingTiersDto = pricing
+						.Where(pt => pt.VariantId == vr.Id)
+						.OrderBy(pt => pt.MinQuantity)
+						.Select(pt => new PricingTierDto
+						{
+							ProductId = pt.ProductId,
+							VariantId = pt.VariantId,
+							MinQuantity = pt.MinQuantity,
+							PricePerUnit = pt.PricePerUnit,
+							PricePerUnitGlobal = pt.PricePerUnitGlobal
+						})
+						.ToList(),
 					Images = variantImages.Where(img => img.VariantId == vr.Id)
-								.Select(img => new ProductImage
+								.Select(img => new ProductImageDto
 								{
-									Id = img.Id,
 									ImageUrl = img.ImageUrl,
+									CloudinaryId = img.CloudinaryId,
+									DisplayOrder = img.DisplayOrder,
+									AltText = img.AltText,
 									ProductId = img.ProductId,
-									VariantId = img.VariantId
+									VariantId = img.VariantId,
+									Style = img.Style
 								}).ToList(),
 
 				}).ToList(),
-					Specifications = spec
+					Specifications = new ProductSpecificationDto
+					{
+						ProductId = spec.ProductId,
+						Certification = spec.Certification,
+						MainMaterial = spec.MainMaterial,
+						MaterialFamily = spec.MaterialFamily,
+						Model = spec.Model,
+						Note = spec.Note,
+						ProductionCountry = spec.ProductionCountry,
+						ProductLine = spec.ProductLine,
+						Size = spec.Size,
+						WarrantyDuration = spec.WarrantyDuration,
+						WarrantyType = spec.WarrantyType,
+						YouTubeId = spec.YouTubeId,
+						Nafdac = spec.Nafdac,
+						Fda = spec.Fda,
+						FdaApproved = spec.FdaApproved,
+						Disclaimer = spec.Disclaimer,
+						FromTheManufacturer = spec.FromTheManufacturer,
+						WhatIsInTheBox = spec.WhatIsInTheBox,
+						ProductWarranty = spec.ProductWarranty,
+						WarrantyAddress = spec.WarrantyAddress
+					},
+					Tags = tags.Count < 1 ? Array.Empty<string>() : tags
+						.Where(t => t.Tag != null && !string.IsNullOrWhiteSpace(t.Tag.Name))
+						.Select(t => t.Tag!.Name)
+						.Distinct(StringComparer.OrdinalIgnoreCase)
+						.ToArray()
 				};
 
 				response.StatusCode = 200;
@@ -742,19 +819,6 @@ namespace GaStore.Core.Services.Implementations
 					response.Message = "You cannot upload more than 10 images";
 					return response;
 				}
-
-                if (productDto.Tags != null && productDto.Tags.Count > 0)
-                {
-                    foreach (var tags in productDto.Tags)
-                    {
-                        var tg = await _unitOfWork.TagRepository.Get(t => t.Name.ToLower().Trim() == tags.ToLower().Trim());
-                        if (tg == null)
-                        {
-                            response.Message = "Invalid tag.";
-                            return response;
-                        }
-                    }
-                }
 
                 if (productDto.VariantsDto == null)
                 {
@@ -905,7 +969,7 @@ namespace GaStore.Core.Services.Implementations
 
 							//delete existing tags associated with product
 							var tp = await _unitOfWork.TaggedProductRepository.GetAll(t => t.ProductId == prod.Id);
-							if(tp != null && tp.Count > 0 && productDto?.Tags?.Count > 0)
+							if(tp != null && tp.Count > 0)
 							{
 								foreach(var tpItem in tp)
 								{
@@ -961,30 +1025,16 @@ namespace GaStore.Core.Services.Implementations
 					//add tags
                     if (productDto.Tags != null && productDto.Tags.Count > 0)
                     {
-                        List<TaggedProductDto> taggedProductDtos = new();
-
-                        foreach (var tags in productDto.Tags)
+                        var resolvedTags = await ResolveTagsAsync(productDto.Tags);
+                        foreach (var tag in resolvedTags)
                         {
-                            var tg = await _unitOfWork.TagRepository.Get(t => t.Name.ToLower().Trim() == tags.ToLower().Trim());
-                            if (tg != null)
+                            await _unitOfWork.TaggedProductRepository.Add(new TaggedProduct
                             {
-								TaggedProductDto tagged = new()
-								{
-									ProductId = product.Id,
-									TagId = tg.Id,
-									ProductName = product.Name,
-									TagName = tg.Name
-								};
+                                ProductId = product.Id,
+                                TagId = tag.Id
+                            });
+                        }
 
-								taggedProductDtos.Add(tagged);
-                            }
-                        }
-						var taggedPro = _mapper.Map<List<TaggedProduct>>(taggedProductDtos);
-						foreach(var tagged in taggedPro)
-						{
-                            await _unitOfWork.TaggedProductRepository.Add(tagged);
-                        }
-                            
                         //await _unitOfWork.CompletedAsync(UserId);
                         //await _tagService.AddBulkTagToProductAsync(taggedProductDtos, UserId);
                     }
@@ -1018,9 +1068,7 @@ namespace GaStore.Core.Services.Implementations
 					return response;
 				}
 
-				//get brand name
-				var brand = await _unitOfWork.BrandRepository.GetById((Guid)productDto.BrandId);
-				string brandName = brand?.Name ?? "Ga";
+				var resolvedBrandId = await ResolveBrandIdAsync(productDto);
 				//create product
 				var productDto_ = new ProductDto
 				{
@@ -1034,7 +1082,7 @@ namespace GaStore.Core.Services.Implementations
 					StockQuantity = productDto.StockQuantity,
 					IsAvailable = productDto.IsAvailable,
 					IsApproved = productDto.IsApproved,
-					BrandId = productDto.BrandId,
+					BrandId = resolvedBrandId,
                     CategoryId = productDto.CategoryId,
                     SubCategoryId = productDto.SubCategoryId,
                     ProductTypeId = productDto.ProductTypeId,
@@ -1204,6 +1252,7 @@ namespace GaStore.Core.Services.Implementations
 				}
 
 				//create product
+				var resolvedBrandId = await ResolveBrandIdAsync(productDto);
 				var productDto_ = new ProductDto
 				{
 					Id = productDto.Id,
@@ -1215,7 +1264,7 @@ namespace GaStore.Core.Services.Implementations
 					StockQuantity = productDto.StockQuantity,
 					IsAvailable = productDto.IsAvailable,
 					IsApproved = productDto.IsApproved,
-					BrandId = productDto.BrandId,
+					BrandId = resolvedBrandId,
                     CategoryId = productDto.CategoryId,
                     SubCategoryId = productDto.SubCategoryId,
                     ProductTypeId = productDto.ProductTypeId,
@@ -1339,21 +1388,14 @@ namespace GaStore.Core.Services.Implementations
                 //add tags
                 if (productDto.Tags != null && productDto.Tags.Count > 0)
                 {
-                    List<TaggedProductDto> taggedProductDtos = new();
-
-                    foreach (var tags in productDto.Tags)
+                    var resolvedTags = await ResolveTagsAsync(productDto.Tags);
+                    foreach (var tag in resolvedTags)
                     {
-                        var tg = await _unitOfWork.TagRepository.Get(t => t.Name.ToLower().Trim() == tags.ToLower().Trim());
-                        if (tg != null)
+                        await _unitOfWork.TaggedProductRepository.Add(new TaggedProduct
                         {
-                            TaggedProduct tagged = new()
-                            {
-                                ProductId = product.Id,
-                                TagId = tg.Id
-                            };
-
-                            await _unitOfWork.TaggedProductRepository.Add(tagged);
-                        }
+                            ProductId = product.Id,
+                            TagId = tag.Id
+                        });
                     }
                     //await _unitOfWork.CompletedAsync(UserId);
                 }
@@ -1480,6 +1522,106 @@ namespace GaStore.Core.Services.Implementations
             }
 
 			return response;
+        }
+
+        private async Task<Guid?> ResolveBrandIdAsync(ProductDto productDto)
+        {
+            if (productDto.BrandId.HasValue)
+            {
+                var existingBrand = await _unitOfWork.BrandRepository.GetById(productDto.BrandId.Value);
+                if (existingBrand != null)
+                {
+                    return existingBrand.Id;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(productDto.BrandName))
+            {
+                return null;
+            }
+
+            var trimmedName = productDto.BrandName.Trim();
+            var matchedBrand = await _unitOfWork.BrandRepository.Get(
+                x => x.Name.ToLower() == trimmedName.ToLower()
+            );
+
+            if (matchedBrand != null)
+            {
+                return matchedBrand.Id;
+            }
+
+            var brandCode = await GenerateUniqueBrandCodeAsync(trimmedName);
+            var brand = new Brand
+            {
+                Id = Guid.NewGuid(),
+                Name = trimmedName,
+                Code = brandCode
+            };
+
+            await _unitOfWork.BrandRepository.Add(brand);
+            await _context.SaveChangesAsync();
+            return brand.Id;
+        }
+
+        private async Task<string> GenerateUniqueBrandCodeAsync(string brandName)
+        {
+            var sanitized = new string(brandName
+                .ToUpperInvariant()
+                .Where(char.IsLetterOrDigit)
+                .ToArray());
+
+            if (string.IsNullOrWhiteSpace(sanitized))
+            {
+                sanitized = "BRAND";
+            }
+
+            sanitized = sanitized.Length > 12 ? sanitized[..12] : sanitized;
+            var code = sanitized;
+            var suffix = 1;
+
+            while (await _unitOfWork.BrandRepository.Get(x => x.Code == code) != null)
+            {
+                var suffixText = suffix.ToString();
+                var prefixLength = Math.Max(1, 12 - suffixText.Length);
+                code = $"{sanitized[..Math.Min(prefixLength, sanitized.Length)]}{suffixText}";
+                suffix++;
+            }
+
+            return code;
+        }
+
+        private async Task<List<Tag>> ResolveTagsAsync(IEnumerable<string> tagNames)
+        {
+            var resolvedTags = new List<Tag>();
+            var normalizedNames = tagNames
+                .Where(tagName => !string.IsNullOrWhiteSpace(tagName))
+                .Select(tagName => tagName.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (var tagName in normalizedNames)
+            {
+                var existingTag = await _unitOfWork.TagRepository.Get(
+                    tag => tag.Name.ToLower().Trim() == tagName.ToLower().Trim());
+
+                if (existingTag != null)
+                {
+                    resolvedTags.Add(existingTag);
+                    continue;
+                }
+
+                var newTag = new Tag
+                {
+                    Id = Guid.NewGuid(),
+                    Name = tagName
+                };
+
+                await _unitOfWork.TagRepository.Add(newTag);
+                await _context.SaveChangesAsync();
+                resolvedTags.Add(newTag);
+            }
+
+            return resolvedTags;
         }
 
 

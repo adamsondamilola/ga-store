@@ -40,6 +40,7 @@ namespace GaStore.Core.Services.Implementations
         private readonly IManualPaymentService _manualPaymentService;
         private readonly IPaymentMethodConfigurationService _paymentMethodConfigurationService;
         private readonly IVoucherService _voucherService;
+        private readonly IVendorEarningService _vendorEarningService;
 
         public CheckoutService(IUnitOfWork unitOfWork, 
 			DatabaseContext context, 
@@ -55,7 +56,8 @@ namespace GaStore.Core.Services.Implementations
 			IEmailService emailService, ICartService cartService, ICouponService couponService,
             IManualPaymentService manualPaymentService,
             IPaymentMethodConfigurationService paymentMethodConfigurationService,
-            IVoucherService voucherService)
+            IVoucherService voucherService,
+            IVendorEarningService vendorEarningService)
 		{
 			_unitOfWork = unitOfWork;
 			_context = context;
@@ -74,6 +76,7 @@ namespace GaStore.Core.Services.Implementations
             _manualPaymentService = manualPaymentService;
             _paymentMethodConfigurationService = paymentMethodConfigurationService;
             _voucherService = voucherService;
+            _vendorEarningService = vendorEarningService;
         }
 
 
@@ -294,6 +297,7 @@ namespace GaStore.Core.Services.Implementations
                     {
 						order.HasPaid = true;
 						await _unitOfWork.OrderRepository.Upsert(order);
+                        await _vendorEarningService.ProcessOrderVendorEarningsAsync(order.Id, userId);
 
                         var shipping = await _unitOfWork.ShippingRepository.Get(s => s.OrderId == orderId);
 
@@ -767,6 +771,7 @@ namespace GaStore.Core.Services.Implementations
                 }
 
                 await ProcessReferralCommissionAsync(order.UserId.Value, order.SubTotal ?? order.Amount, order.Id);
+                await _vendorEarningService.ProcessOrderVendorEarningsAsync(order.Id, order.UserId.Value);
                 await FinalizePaidOrderAsync(order, order.UserId.Value, order.AmountAfterDiscount ?? order.Amount);
                 await _unitOfWork.CompletedAsync(order.UserId.Value);
 

@@ -42,6 +42,7 @@ const endpointsPath = {
     websiteContent: 'WebsiteContent',
     voucher: 'Voucher',
     vendor: 'vendor',
+    vendorEarnings: 'vendor-earnings',
     adminModeration: 'admin',
 
 }

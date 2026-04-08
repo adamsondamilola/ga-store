@@ -61,10 +61,14 @@ namespace GaStore.Core.Services.Implementations
 						BankName = b.BankName,
 						AccountNumber = b.AccountNumber,
 						AccountName = b.AccountName,
+                        BankCode = b.BankCode,
 						SwiftCode = b.SwiftCode,
 						RoutingNumber = b.RoutingNumber,
 						BranchCode = b.BranchCode,
-						Currency = b.Currency
+						Currency = b.Currency,
+                        PreferredPayoutGateway = b.PreferredPayoutGateway,
+                        IsDefaultPayoutAccount = b.IsDefaultPayoutAccount,
+                        IsPayoutVerified = b.IsPayoutVerified
 					})
 					.ToListAsync();
 
@@ -107,6 +111,17 @@ namespace GaStore.Core.Services.Implementations
 		{
 			var response = new ServiceResponse<BankAccountDto>();
 
+            if (bankAccountDto.IsDefaultPayoutAccount)
+            {
+                var existingDefaults = await _context.BankAccounts
+                    .Where(x => x.UserId == userId && x.IsDefaultPayoutAccount)
+                    .ToListAsync();
+                foreach (var item in existingDefaults)
+                {
+                    item.IsDefaultPayoutAccount = false;
+                }
+            }
+
 			var newBankAccount = _mapper.Map<BankAccount>(bankAccountDto);
             newBankAccount.UserId = userId;
 
@@ -135,10 +150,24 @@ namespace GaStore.Core.Services.Implementations
 			bankAccount.BankName = bankAccountDto.BankName;
 			bankAccount.AccountNumber = bankAccountDto.AccountNumber;
 			bankAccount.AccountName = bankAccountDto.AccountName;
+			bankAccount.BankCode = bankAccountDto.BankCode;
 			bankAccount.SwiftCode = bankAccountDto.SwiftCode;
 			bankAccount.RoutingNumber = bankAccountDto.RoutingNumber;
 			bankAccount.BranchCode = bankAccountDto.BranchCode;
 			bankAccount.Currency = bankAccountDto.Currency;
+            bankAccount.PreferredPayoutGateway = bankAccountDto.PreferredPayoutGateway;
+            bankAccount.IsDefaultPayoutAccount = bankAccountDto.IsDefaultPayoutAccount;
+
+            if (bankAccountDto.IsDefaultPayoutAccount)
+            {
+                var existingDefaults = await _context.BankAccounts
+                    .Where(x => x.UserId == bankAccount.UserId && x.Id != bankAccount.Id && x.IsDefaultPayoutAccount)
+                    .ToListAsync();
+                foreach (var item in existingDefaults)
+                {
+                    item.IsDefaultPayoutAccount = false;
+                }
+            }
 
 			await _unitOfWork.BankAccountRepository.Upsert(bankAccount);
 			await _unitOfWork.CompletedAsync(userId);

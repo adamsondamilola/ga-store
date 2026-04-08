@@ -1,5 +1,5 @@
-import VendorDashboard from "@/components/Dashboard/Vendor";
+import VendorProductsDashboard from "@/components/Dashboard/VendorProducts";
 
-export default function VendorProductsPlaceholderPage() {
-  return <VendorDashboard />;
+export default function VendorProductsPage() {
+  return <VendorProductsDashboard />;
 }

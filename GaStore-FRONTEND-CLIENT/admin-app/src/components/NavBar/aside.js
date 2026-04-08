@@ -51,6 +51,7 @@ const primaryItems = [
     children: [
       { href: "/marketplace/kyc", label: "Pending KYC" },
       { href: "/marketplace/products", label: "Pending Products" },
+      { href: "/marketplace/payouts", label: "Weekend Payouts" },
     ],
   },
   {

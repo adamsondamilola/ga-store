@@ -25,6 +25,7 @@ const endpointsPath = {
     propertyAdmin: 'admin/property',
     userAdmin: 'admin/user',
     wallet: 'Wallet',
+    bankAccount: 'BankAccount',
     user: 'User',
     userDeliveryAddress: 'UserDeliveryAddress',
     deliveryLocation: 'DeliveryLocation',
@@ -43,6 +44,7 @@ const endpointsPath = {
     tag: 'Tag',
     cart: 'Cart',
     vendor: 'vendor',
+    vendorEarnings: 'vendor-earnings',
     adminModeration: 'admin',
 
 }

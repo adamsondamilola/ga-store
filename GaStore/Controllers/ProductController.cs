@@ -61,6 +61,15 @@ namespace GaStore.Controllers
 		}
 
         [Authorize(Roles = CustomRoles.Admin)]
+        [HttpGet("admin/{id}")]
+        public async Task<ActionResult<ServiceResponse<ProductListDto>>> GetProductAdmin(Guid id)
+        {
+            var response = await _productService.GetProductByIdAsync(id);
+
+            return StatusCode(response.StatusCode, response);
+        }
+
+        [Authorize(Roles = CustomRoles.Admin)]
         [HttpGet("approval")]
         public async Task<ActionResult<ServiceResponse<bool>>> ProductApproval(Guid productId)
         {

@@ -17,8 +17,18 @@ import { stringToSLug } from '@/utils/stringToSlug';
 import ProductListByCategory from '../ProductsByCategory';
 
 export default function ProductViewComponent({ productData, productReviews }) {
+  const getTierKey = (tier) =>
+    tier ? `${tier.variantId || 'no-variant'}-${tier.minQuantity}-${tier.pricePerUnit}-${tier.pricePerUnitGlobal}` : null;
+  const normalizedVariants = useMemo(
+    () =>
+      (productData?.variants || []).map((variant) => ({
+        ...variant,
+        pricingTiers: variant.pricingTiers || variant.pricingTiersDto || [],
+      })),
+    [productData]
+  );
   const [selectedVariant, setSelectedVariant] = useState(() => {
-    return productData?.variants?.find((v) => v.stockQuantity > 0) || productData?.variants?.[0] || null;
+    return normalizedVariants.find((v) => v.stockQuantity > 0) || normalizedVariants[0] || null;
   });
   const [selectedTier, setSelectedTier] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -38,6 +48,7 @@ export default function ProductViewComponent({ productData, productReviews }) {
   };
 
   const selectedColor = useMemo(() => selectedVariant?.color || null, [selectedVariant]);
+  const productVariants = normalizedVariants;
   const imagesToShow = useMemo(
     () => (selectedVariant?.images?.length > 0 ? selectedVariant.images : productData?.images || []),
     [selectedVariant, productData]
@@ -65,7 +76,7 @@ export default function ProductViewComponent({ productData, productReviews }) {
   };
 
   const handleTierSelect = (tier) => {
-    const matchingVariant = productData?.variants.find((v) => v.id === tier.variantId);
+    const matchingVariant = productVariants.find((v) => v.id === tier.variantId);
     if (matchingVariant) {
       setSelectedVariant(matchingVariant);
       setSelectedTier(tier);
@@ -304,9 +315,9 @@ export default function ProductViewComponent({ productData, productReviews }) {
                   .sort((a, b) => a.minQuantity - b.minQuantity)
                   .map((tier) => (
                     <PricingTierCard
-                      key={tier.id}
+                      key={getTierKey(tier)}
                       tier={tier}
-                      isSelected={selectedTier?.id === tier.id}
+                      isSelected={getTierKey(selectedTier) === getTierKey(tier)}
                       onSelect={handleTierSelect}
                       selectedVariant={selectedVariant}
                     />
@@ -323,8 +334,8 @@ export default function ProductViewComponent({ productData, productReviews }) {
                     Size: <span className="font-bold">{selectedVariant?.size}</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {[...new Set(productData.variants.map((v) => v.size))].filter(Boolean).map((size) => {
-                      const variant = productData.variants.find((v) => v.size === size);
+                    {[...new Set(productVariants.map((v) => v.size))].filter(Boolean).map((size) => {
+                      const variant = productVariants.find((v) => v.size === size);
                       return (
                         <button
                           key={size}
@@ -349,8 +360,8 @@ export default function ProductViewComponent({ productData, productReviews }) {
                     Style: <span className="font-bold">{selectedVariant?.style}</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {[...new Set(productData.variants.map((v) => v.style))].filter(Boolean).map((style) => {
-                      const variant = productData.variants.find((v) => v.style === style);
+                    {[...new Set(productVariants.map((v) => v.style))].filter(Boolean).map((style) => {
+                      const variant = productVariants.find((v) => v.style === style);
                       return (
                         <button
                           key={style}
@@ -377,8 +388,8 @@ export default function ProductViewComponent({ productData, productReviews }) {
                     <span className="ml-1 font-bold">{selectedColor}</span>
                   </h3>
                   <div className="flex flex-wrap gap-3">
-                    {[...new Set(productData.variants.map((v) => v.color))].filter(Boolean).map((color) => {
-                      const variant = productData.variants.find((v) => v.color === color);
+                    {[...new Set(productVariants.map((v) => v.color))].filter(Boolean).map((color) => {
+                      const variant = productVariants.find((v) => v.color === color);
                       return (
                         <button
                           key={color}
@@ -407,11 +418,11 @@ export default function ProductViewComponent({ productData, productReviews }) {
               {selectedVariant.name && selectedVariant?.name !== 'null' && (
                 <section aria-labelledby="option-selector">
                   <h3 id="option-selector" className="mb-2 text-sm font-semibold text-gray-800">
-                    {productData?.variants?.length > 1 ? 'Options:' : 'Option:'} <span className="font-bold">{selectedVariant?.name}</span>
+                    {productVariants.length > 1 ? 'Options:' : 'Option:'} <span className="font-bold">{selectedVariant?.name}</span>
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {[...new Set(productData.variants.map((v) => v.name))].filter(Boolean).map((name) => {
-                      const variant = productData.variants.find((v) => v.name === name);
+                    {[...new Set(productVariants.map((v) => v.name))].filter(Boolean).map((name) => {
+                      const variant = productVariants.find((v) => v.name === name);
                       return (
                         <button
                           key={name}

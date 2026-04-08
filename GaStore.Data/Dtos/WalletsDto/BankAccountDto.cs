@@ -25,6 +25,9 @@ namespace GaStore.Data.Dtos.WalletsDto
 		public string AccountName { get; set; } // Name associated with the bank account
 
 		[MaxLength(50)]
+		public string? BankCode { get; set; } // Bank code required by payout gateways
+
+		[MaxLength(50)]
 		public string? SwiftCode { get; set; } // SWIFT/BIC code (optional)
 
 		[MaxLength(50)]
@@ -36,6 +39,12 @@ namespace GaStore.Data.Dtos.WalletsDto
 		[MaxLength(100)]
 		public string? Currency { get; set; } // Currency of the account (e.g., "USD", "NGN")
 
+		[MaxLength(50)]
+		public string? PreferredPayoutGateway { get; set; }
+
+		public bool IsDefaultPayoutAccount { get; set; } = true;
+
+		public bool IsPayoutVerified { get; set; }
 	}
 
 }

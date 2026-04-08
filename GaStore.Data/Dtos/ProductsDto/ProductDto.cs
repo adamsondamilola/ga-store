@@ -36,6 +36,7 @@ namespace GaStore.Data.Dtos.ProductsDto
         public DateTime? DateCreated { get; set; }
 
         public Guid? BrandId { get; set; }
+        public string? BrandName { get; set; }
 		public Guid? CategoryId { get; set; }
         public Guid? SubCategoryId { get; set; }
         public Guid? ProductTypeId { get; set; }
@@ -95,12 +96,24 @@ namespace GaStore.Data.Dtos.ProductsDto
         public ProductSubCategoryDto? SubCategory { get; set; }
         public ProductTypeDto? ProductType { get; set; }
         public ProductSubTypeDto? ProductSubType { get; set; }
-        public List<ProductImage> Images { get; set; }
-		public List<ProductVariant> Variants { get; set; }
-		public ProductSpecification Specifications { get; set; }
-        public User? User { get; set; }
-        public User? Approver { get; set; }
+        public List<ProductImageDto> Images { get; set; } = new();
+		public List<ProductVariantDto> Variants { get; set; } = new();
+		public ProductSpecificationDto Specifications { get; set; } = new();
+        public ProductUserSummaryDto? User { get; set; }
+        public ProductUserSummaryDto? Approver { get; set; }
 		public string[]? Tags { get; set; }
+    }
+
+    public class ProductUserSummaryDto
+    {
+        public Guid Id { get; set; }
+        public string? Username { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Email { get; set; }
+        public bool IsAdmin { get; set; }
+        public bool IsSuperAdmin { get; set; }
+        public bool IsVendor { get; set; }
     }
 
     public class ProductBrandDto
