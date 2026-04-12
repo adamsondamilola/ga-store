@@ -24,13 +24,20 @@ namespace GaStore.Core.Services.Implementations
         private readonly ILogger<ProductSubTypeService> _logger;
         private readonly IMapper _mapper;
         private readonly AppSettings _appSettings;
+        private readonly IImageUploadService _imageUploadService;
 
-        public ProductSubTypeService(IUnitOfWork unitOfWork, ILogger<ProductSubTypeService> logger, IMapper mapper, IOptions<AppSettings> appSettings)
+        public ProductSubTypeService(
+            IUnitOfWork unitOfWork,
+            ILogger<ProductSubTypeService> logger,
+            IMapper mapper,
+            IOptions<AppSettings> appSettings,
+            IImageUploadService imageUploadService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
             _appSettings = appSettings.Value;
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<PaginatedServiceResponse<List<ProductSubTypeDto>>> GetProductSubTypesAsync(string? searchTerm, Guid? productTypeId, int pageNumber, int pageSize)
@@ -154,17 +161,12 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Handle image upload
-                string? imageUrl = null;
-                if (productSubTypeDto.ImageFile != null && productSubTypeDto.ImageFile.Length > 0)
+                var imageUrl = await ResolveImageUrlAsync(productSubTypeDto.ImageFile, productSubTypeDto.ImageUrl);
+                if (productSubTypeDto.ImageFile != null && imageUrl == null)
                 {
-                    imageUrl = await UploadImageAsync(productSubTypeDto.ImageFile, "productsubtypes");
-                    if (imageUrl == null)
-                    {
-                        response.StatusCode = 400;
-                        response.Message = "Invalid image file.";
-                        return response;
-                    }
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
                 }
 
                 // Map DTO to entity
@@ -243,25 +245,22 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Handle image update
-                if (productSubTypeDto.ImageFile != null && productSubTypeDto.ImageFile.Length > 0)
+                var imageUrl = await ResolveImageUrlAsync(productSubTypeDto.ImageFile, productSubTypeDto.ImageUrl, productSubType.ImageUrl);
+                if (productSubTypeDto.ImageFile != null && imageUrl == null)
                 {
-                    var imageUrl = await UploadImageAsync(productSubTypeDto.ImageFile, "productsubtypes");
-                    if (imageUrl == null)
-                    {
-                        response.StatusCode = 400;
-                        response.Message = "Invalid image file.";
-                        return response;
-                    }
-
-                    // Delete old image
-                    if (!string.IsNullOrEmpty(productSubType.ImageUrl))
-                    {
-                        DeleteImage(productSubType.ImageUrl, "productsubtypes");
-                    }
-
-                    productSubType.ImageUrl = imageUrl;
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
                 }
+
+                if (productSubTypeDto.ImageFile != null &&
+                    !string.IsNullOrWhiteSpace(productSubType.ImageUrl) &&
+                    !string.Equals(productSubType.ImageUrl, imageUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    DeleteImage(productSubType.ImageUrl, "productsubtypes");
+                }
+
+                productSubType.ImageUrl = imageUrl;
 
                 // Update fields
                 productSubType.Name = productSubTypeDto.Name;
@@ -352,38 +351,28 @@ namespace GaStore.Core.Services.Implementations
 
         private async Task<string?> UploadImageAsync(IFormFile imageFile, string folderName)
         {
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-            var maxFileSize = 5 * 1024 * 1024; // 5MB
-            var uploadsFolder = Path.Combine("wwwroot", "images", folderName);
-            var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            var upload = await _imageUploadService.UploadAndOptimizeImageAsync(imageFile, Path.Combine("wwwroot", "images", folderName));
+            return upload.IsSuccess ? upload.ImageUrl : null;
+        }
 
-            if (!allowedExtensions.Contains(fileExtension) || imageFile.Length > maxFileSize)
+        private async Task<string?> ResolveImageUrlAsync(IFormFile? imageFile, string? imageUrl, string? existingImageUrl = null)
+        {
+            if (imageFile != null && imageFile.Length > 0)
             {
-                return null;
+                return await UploadImageAsync(imageFile, "productsubtypes");
             }
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            if (!string.IsNullOrWhiteSpace(imageUrl))
             {
-                await imageFile.CopyToAsync(stream);
+                return imageUrl.Trim();
             }
 
-            return $"{_appSettings.ApiRoot}/images/{folderName}/{uniqueFileName}";
+            return existingImageUrl;
         }
 
         private void DeleteImage(string imageUrl, string folderName)
         {
-            var fileName = Path.GetFileName(imageUrl);
-            var imagePath = Path.Combine("wwwroot", "images", folderName, fileName);
-            if (File.Exists(imagePath))
-            {
-                File.Delete(imagePath);
-            }
+            _imageUploadService.DeleteImageAsync(imageUrl).GetAwaiter().GetResult();
         }
     }
 }

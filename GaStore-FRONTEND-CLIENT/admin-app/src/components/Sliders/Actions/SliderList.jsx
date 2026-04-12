@@ -22,7 +22,15 @@ const SliderList = ({ loading, sliders, onEdit, onDelete }) => {
       <tbody>
         {sliders.map(slider => (
           <tr key={slider?.id}>
-            <td className="border px-2 py-1">{slider?.imageUrl && <img src={slider?.imageUrl} alt={slider?.title} className="w-12 h-12 rounded-lg object-contain" />}</td>
+            <td className="border px-2 py-1">
+              {slider?.imageUrl && (
+                /\.(mp4|webm|mov|avi|m4v)(\?.*)?$/i.test(slider.imageUrl) ? (
+                  <video src={slider.imageUrl} className="w-16 h-12 rounded-lg object-cover" muted />
+                ) : (
+                  <img src={slider.imageUrl} alt={slider?.title} className="w-12 h-12 rounded-lg object-contain" />
+                )
+              )}
+            </td>
             <td className="border px-2 py-1">{slider?.title}</td>
             <td className="border px-2 py-1">{slider?.link}</td>
             <td className="border px-2 py-1">{slider?.isActive ? 'Yes' : 'No'}</td>

@@ -17,6 +17,7 @@ using GaStore.Data.Enums;
 using GaStore.Data.Models;
 using GaStore.Shared;
 using GaStore.Shared.Constants;
+using GaStore.Shared.Uploads;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -25,7 +26,9 @@ namespace GaStore.Core.Services.Implementations
         private readonly ILogger<ImageUploadService> _logger;
         private readonly ImageOptimizationSettings _imageSettings;
         private readonly AppSettings _appSettings;
+        private readonly UploadServiceOptions _uploadServiceOptions;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IUploadServiceClient? _uploadServiceClient;
 
         // Default allowed file extensions
         private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".svg" };
@@ -47,12 +50,16 @@ namespace GaStore.Core.Services.Implementations
             ILogger<ImageUploadService> logger,
             IOptions<ImageOptimizationSettings> imageSettings,
             IOptions<AppSettings> appSettings,
-            ICloudinaryService cloudinaryService = null)
+            IOptions<UploadServiceOptions>? uploadServiceOptions = null,
+            ICloudinaryService cloudinaryService = null,
+            IUploadServiceClient? uploadServiceClient = null)
         {
             _logger = logger;
             _imageSettings = imageSettings?.Value ?? new ImageOptimizationSettings();
             _appSettings = appSettings?.Value ?? new AppSettings();
+            _uploadServiceOptions = uploadServiceOptions?.Value ?? new UploadServiceOptions();
             _cloudinaryService = cloudinaryService;
+            _uploadServiceClient = uploadServiceClient;
         }
 
         public async Task<ImageUploadResult> UploadAndOptimizeImageAsync(IFormFile imageFile, string uploadPath = null)
@@ -68,6 +75,24 @@ namespace GaStore.Core.Services.Implementations
                     result.IsSuccess = false;
                     result.ErrorMessage = "Invalid image file";
                     return result;
+                }
+
+                if (_uploadServiceClient?.IsEnabled == true)
+                {
+                    var uploadResponse = await _uploadServiceClient.UploadImageAsync(imageFile, uploadPath);
+                    return new ImageUploadResult
+                    {
+                        IsSuccess = uploadResponse.IsSuccess,
+                        ImageUrl = uploadResponse.FileUrl,
+                        FileName = uploadResponse.FileName,
+                        FilePath = uploadResponse.FilePath,
+                        PublicId = uploadResponse.PublicId,
+                        OriginalSize = uploadResponse.OriginalSize,
+                        OptimizedSize = uploadResponse.StoredSize,
+                        Width = uploadResponse.Width ?? 0,
+                        Height = uploadResponse.Height ?? 0,
+                        ErrorMessage = uploadResponse.ErrorMessage
+                    };
                 }
 
                 // Optimize the image
@@ -274,6 +299,17 @@ namespace GaStore.Core.Services.Implementations
         {
             try
             {
+                if (_uploadServiceClient?.IsEnabled == true)
+                {
+                    var deleteResult = await _uploadServiceClient.DeleteFileAsync(imageUrl);
+                    if (!deleteResult.IsSuccess)
+                    {
+                        throw new InvalidOperationException(deleteResult.ErrorMessage ?? "Failed to delete image through upload service.");
+                    }
+
+                    return;
+                }
+
                 if (_appSettings.UseCloudinary && _cloudinaryService != null)
                 {
                     // Extract public ID from Cloudinary URL
@@ -303,14 +339,13 @@ namespace GaStore.Core.Services.Implementations
         public string GenerateOptimizedFileName(string originalFileName)
         {
             var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-            var baseName = Path.GetFileNameWithoutExtension(originalFileName);
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var guid = Guid.NewGuid().ToString("N").Substring(0, 8);
 
             // Determine output extension based on settings
             var outputExtension = DetermineOutputExtension(extension);
 
-            return $"{baseName}_{timestamp}_{guid}{outputExtension}";
+            return $"{timestamp}_{guid}{outputExtension}";
         }
 
         public async Task<Data.Dtos.ImageUploads.ImageInfo> GetImageInfo(IFormFile imageFile)
@@ -566,8 +601,8 @@ namespace GaStore.Core.Services.Implementations
             {
                 // Determine upload directory
                 var baseUploadPath = string.IsNullOrEmpty(uploadPath)
-                    ? Path.Combine("wwwroot", "uploads", "images", DateTime.UtcNow.ToString("yyyy-MM"))
-                    : uploadPath;
+                    ? Path.Combine(GetLocalStorageRoot(), "wwwroot", "uploads", "images", DateTime.UtcNow.ToString("yyyy-MM"))
+                    : ResolveLocalUploadPath(uploadPath);
 
                 // Ensure directory exists
                 Directory.CreateDirectory(baseUploadPath);
@@ -585,8 +620,7 @@ namespace GaStore.Core.Services.Implementations
                 using var image = await Image.LoadAsync(infoStream);
 
                 // Build URL
-                var relativePath = filePath.Replace("wwwroot", "").Replace("\\", "/");
-                var imageUrl = $"{_appSettings.ApiRoot?.TrimEnd('/')}{relativePath}";
+                var imageUrl = BuildLocalFileUrl(filePath);
 
                 result.IsSuccess = true;
                 result.ImageUrl = imageUrl;
@@ -637,16 +671,67 @@ namespace GaStore.Core.Services.Implementations
                 return null;
 
             var uri = new Uri(imageUrl);
-            var localPath = uri.LocalPath;
-
-            // Remove API root if present
-            if (!string.IsNullOrEmpty(_appSettings.ApiRoot) &&
-                localPath.StartsWith(_appSettings.ApiRoot))
+            var localPath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            if (localPath.StartsWith($"wwwroot{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             {
-                localPath = localPath.Substring(_appSettings.ApiRoot.Length);
+                localPath = localPath[(($"wwwroot{Path.DirectorySeparatorChar}").Length)..];
             }
 
-            return Path.Combine("wwwroot", localPath.TrimStart('/'));
+            return Path.Combine(GetLocalStorageRoot(), "wwwroot", localPath);
+        }
+
+        private string ResolveLocalUploadPath(string uploadPath)
+        {
+            if (Path.IsPathRooted(uploadPath))
+            {
+                return uploadPath;
+            }
+
+            var normalizedPath = uploadPath
+                .Replace('/', Path.DirectorySeparatorChar)
+                .TrimStart(Path.DirectorySeparatorChar);
+
+            if (normalizedPath.StartsWith($"wwwroot{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedPath = normalizedPath[(($"wwwroot{Path.DirectorySeparatorChar}").Length)..];
+                return Path.Combine(GetLocalStorageRoot(), "wwwroot", normalizedPath);
+            }
+
+            return Path.Combine(GetLocalStorageRoot(), normalizedPath);
+        }
+
+        private string BuildLocalFileUrl(string filePath)
+        {
+            var wwwrootPath = Path.Combine(GetLocalStorageRoot(), "wwwroot");
+            var relativePath = filePath.StartsWith(wwwrootPath, StringComparison.OrdinalIgnoreCase)
+                ? filePath[wwwrootPath.Length..]
+                : filePath.Replace(GetLocalStorageRoot(), string.Empty, StringComparison.OrdinalIgnoreCase);
+
+            relativePath = relativePath.Replace("\\", "/");
+            if (!relativePath.StartsWith('/'))
+            {
+                relativePath = "/" + relativePath;
+            }
+
+            return $"{GetLocalBaseUrl().TrimEnd('/')}{relativePath}";
+        }
+
+        private string GetLocalStorageRoot()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            if (currentDirectory.EndsWith("GaStore.UploadService", StringComparison.OrdinalIgnoreCase))
+            {
+                return currentDirectory;
+            }
+
+            return Path.GetFullPath(Path.Combine(currentDirectory, "..", "GaStore.UploadService"));
+        }
+
+        private string GetLocalBaseUrl()
+        {
+            return string.IsNullOrWhiteSpace(_uploadServiceOptions.BaseUrl)
+                ? _appSettings.ApiRoot ?? string.Empty
+                : _uploadServiceOptions.BaseUrl;
         }
 
         private string GetContentTypeForFormat(ImageFormat format)

@@ -1,16 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using GaStore.Core.Services.Interfaces;
 using GaStore.Data.Dtos.ProductsDto;
 using GaStore.Data.Entities.Products;
-using GaStore.Shared.Constants;
-using GaStore.Shared;
 using GaStore.Infrastructure.Repository.UnitOfWork;
-using AutoMapper;
+using GaStore.Shared;
+using GaStore.Shared.Constants;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -19,12 +21,18 @@ namespace GaStore.Core.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<SubCategoryService> _logger;
         private readonly IMapper _mapper;
+        private readonly IImageUploadService _imageUploadService;
 
-        public SubCategoryService(IUnitOfWork unitOfWork, ILogger<SubCategoryService> logger, IMapper mapper)
+        public SubCategoryService(
+            IUnitOfWork unitOfWork,
+            ILogger<SubCategoryService> logger,
+            IMapper mapper,
+            IImageUploadService imageUploadService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<PaginatedServiceResponse<List<SubCategoryDto>>> GetSubCategoriesAsync(string? searchTerm, int pageNumber, int pageSize)
@@ -40,18 +48,14 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Build filter expression
                 System.Linq.Expressions.Expression<Func<SubCategory, bool>>? filter = null;
                 if (!string.IsNullOrEmpty(searchTerm))
                 {
                     filter = sc => sc.Name.Contains(searchTerm);
                 }
 
-                // Get total count
-                var totalRecords = _unitOfWork.SubCategoryRepository.GetAll(filter ?? (sc => true))
-                    .Result.Count;
+                var totalRecords = _unitOfWork.SubCategoryRepository.GetAll(filter ?? (sc => true)).Result.Count;
 
-                // Get subcategories with included category
                 var subCategories = await _unitOfWork.SubCategoryRepository.GetAllAsync(
                     filter: filter,
                     orderBy: q => q.OrderBy(sc => sc.Name),
@@ -89,7 +93,6 @@ namespace GaStore.Core.Services.Implementations
 
             try
             {
-                // Get subcategory with included category and product types
                 var subCategory = await _unitOfWork.SubCategoryRepository.GetByIdIncluding(
                     id,
                     sc => sc.Category!,
@@ -104,15 +107,6 @@ namespace GaStore.Core.Services.Implementations
                 }
 
                 var subCategoryDto = _mapper.Map<SubCategoryDto>(subCategory);
-
-                // Set category name for display
-                if (subCategory.Category != null)
-                {
-                 //   subCategoryDto.Name = subCategory.Category.Name;
-                }
-
-                // Get product types count
-                //subCategoryDto.ProductTypesCount = subCategory.ProductTypes?.Count ?? 0;
 
                 response.StatusCode = 200;
                 response.Message = "SubCategory retrieved successfully";
@@ -141,7 +135,6 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Validate category exists
                 var category = await _unitOfWork.CategoryRepository.GetById(subCategoryDto.CategoryId);
                 if (category == null)
                 {
@@ -150,7 +143,6 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Check for name uniqueness within the same category
                 var existingSubCategory = await _unitOfWork.SubCategoryRepository.Get(
                     x => x.Name.ToLower() == subCategoryDto.Name.Trim().ToLower() &&
                          x.CategoryId == subCategoryDto.CategoryId
@@ -162,12 +154,19 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Map DTO to entity
+                var imageUrl = await ResolveImageUrlAsync(subCategoryDto.ImageFile, subCategoryDto.ImageUrl);
+                if (subCategoryDto.ImageFile != null && imageUrl == null)
+                {
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
+                }
+
                 var subCategory = new SubCategory
                 {
                     CategoryId = subCategoryDto.CategoryId,
                     Name = subCategoryDto.Name.Trim(),
-                    ImageUrl = subCategoryDto.ImageUrl,
+                    ImageUrl = imageUrl,
                     IsActive = subCategoryDto.IsActive,
                     HasColors = subCategoryDto.HasColors,
                     HasSizes = subCategoryDto.HasSizes,
@@ -177,8 +176,9 @@ namespace GaStore.Core.Services.Implementations
                 await _unitOfWork.SubCategoryRepository.Add(subCategory);
                 await _unitOfWork.CompletedAsync(userId);
 
-                // Return created data with ID
                 subCategoryDto.Id = subCategory.Id;
+                subCategoryDto.ImageUrl = subCategory.ImageUrl;
+                subCategoryDto.ImageFile = null;
 
                 response.StatusCode = 201;
                 response.Message = "SubCategory created successfully";
@@ -215,7 +215,6 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Validate category exists if changing
                 if (subCategoryDto.CategoryId != subCategory.CategoryId)
                 {
                     var category = await _unitOfWork.CategoryRepository.GetById(subCategoryDto.CategoryId);
@@ -227,7 +226,6 @@ namespace GaStore.Core.Services.Implementations
                     }
                 }
 
-                // Check for name uniqueness (exclude current subcategory)
                 var existingWithSameName = await _unitOfWork.SubCategoryRepository.Get(
                     x => x.Name.ToLower() == subCategoryDto.Name.Trim().ToLower() &&
                          x.CategoryId == subCategoryDto.CategoryId &&
@@ -240,10 +238,24 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Update fields
+                var imageUrl = await ResolveImageUrlAsync(subCategoryDto.ImageFile, subCategoryDto.ImageUrl, subCategory.ImageUrl);
+                if (subCategoryDto.ImageFile != null && imageUrl == null)
+                {
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
+                }
+
+                if (subCategoryDto.ImageFile != null &&
+                    !string.IsNullOrWhiteSpace(subCategory.ImageUrl) &&
+                    !string.Equals(subCategory.ImageUrl, imageUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    await _imageUploadService.DeleteImageAsync(subCategory.ImageUrl);
+                }
+
                 subCategory.CategoryId = subCategoryDto.CategoryId;
                 subCategory.Name = subCategoryDto.Name.Trim();
-                subCategory.ImageUrl = subCategoryDto.ImageUrl;
+                subCategory.ImageUrl = imageUrl;
                 subCategory.IsActive = subCategoryDto.IsActive;
                 subCategory.HasColors = subCategoryDto.HasColors;
                 subCategory.HasSizes = subCategoryDto.HasSizes;
@@ -251,6 +263,9 @@ namespace GaStore.Core.Services.Implementations
 
                 await _unitOfWork.SubCategoryRepository.Upsert(subCategory);
                 await _unitOfWork.CompletedAsync(userId);
+
+                subCategoryDto.ImageUrl = subCategory.ImageUrl;
+                subCategoryDto.ImageFile = null;
 
                 response.StatusCode = 200;
                 response.Message = "SubCategory updated successfully";
@@ -284,7 +299,6 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Check if subcategory has associated product types
                 if (subCategory.ProductTypes != null && subCategory.ProductTypes.Count > 0)
                 {
                     response.StatusCode = 400;
@@ -292,7 +306,11 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Delete the subcategory
+                if (!string.IsNullOrWhiteSpace(subCategory.ImageUrl))
+                {
+                    await _imageUploadService.DeleteImageAsync(subCategory.ImageUrl);
+                }
+
                 await _unitOfWork.SubCategoryRepository.Remove(subCategory.Id);
                 await _unitOfWork.CompletedAsync(userId);
 
@@ -365,6 +383,22 @@ namespace GaStore.Core.Services.Implementations
             }
 
             return response;
+        }
+
+        private async Task<string?> ResolveImageUrlAsync(IFormFile? imageFile, string? imageUrl, string? existingImageUrl = null)
+        {
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var upload = await _imageUploadService.UploadAndOptimizeImageAsync(imageFile, Path.Combine("wwwroot", "images", "subcategories"));
+                return upload.IsSuccess ? upload.ImageUrl : null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(imageUrl))
+            {
+                return imageUrl.Trim();
+            }
+
+            return existingImageUrl;
         }
     }
 }

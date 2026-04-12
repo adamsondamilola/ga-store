@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GaStore.Core\GaStore.Core.csproj" />
+    <ProjectReference Include="..\GaStore.Data\GaStore.Data.csproj" />
+    <ProjectReference Include="..\GaStore.Shared\GaStore.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -11,19 +11,16 @@ using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using GaStore.Core.Services.Cloudinary;
 using GaStore.Core.Services.Interfaces;
 using GaStore.Data.Dtos.AdsDto;
 using GaStore.Data.Entities.Ads;
-using GaStore.Data.Enums;
 using GaStore.Data.Models;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Shared;
 using GaStore.Shared.Constants;
-using GaStore.Data.Dtos.ImageUploads;
+using GaStore.Shared.Uploads;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -33,23 +30,26 @@ namespace GaStore.Core.Services.Implementations
         private readonly ILogger<BannerService> _logger;
         private readonly IMapper _mapper;
         private readonly AppSettings _appSettings;
-        private readonly ICloudinaryService _cloudinaryService;
-        private readonly ImageOptimizationSettings _imageSettings;
+        private readonly UploadServiceOptions _uploadServiceOptions;
+        private readonly IImageUploadService _imageUploadService;
+        private readonly IUploadServiceClient? _uploadServiceClient;
 
         public BannerService(
             IUnitOfWork unitOfWork,
             ILogger<BannerService> logger,
             IMapper mapper,
             IOptions<AppSettings> appSettings,
-            ICloudinaryService cloudinaryService = null,
-            IOptions<ImageOptimizationSettings> imageSettings = null)
+            IOptions<UploadServiceOptions>? uploadServiceOptions,
+            IImageUploadService imageUploadService,
+            IUploadServiceClient? uploadServiceClient = null)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
             _appSettings = appSettings.Value;
-            _cloudinaryService = cloudinaryService;
-            _imageSettings = imageSettings?.Value ?? new ImageOptimizationSettings();
+            _uploadServiceOptions = uploadServiceOptions?.Value ?? new UploadServiceOptions();
+            _imageUploadService = imageUploadService;
+            _uploadServiceClient = uploadServiceClient;
         }
 
         public async Task<PaginatedServiceResponse<List<BannerDto>>> GetBannersAsync(int pageNumber, int pageSize, string type)
@@ -142,19 +142,18 @@ namespace GaStore.Core.Services.Implementations
                 }
 
                 // Validate image file
-                if (!await IsValidImageFileAsync(bannerDto.ImageFile))
+                if (!await IsValidBannerMediaFileAsync(bannerDto))
                 {
                     response.StatusCode = 400;
-                    response.Message = "Invalid image file format or size.";
+                    response.Message = "Invalid slider media format or size.";
                     return response;
                 }
 
-                // Handle image upload
-                string imageUrl = await UploadBannerImageAsync(bannerDto.ImageFile);
+                string imageUrl = await UploadBannerMediaAsync(bannerDto);
                 if (string.IsNullOrEmpty(imageUrl))
                 {
                     response.StatusCode = 400;
-                    response.Message = "Failed to upload image.";
+                    response.Message = "Failed to upload slider media.";
                     return response;
                 }
 
@@ -230,22 +229,20 @@ namespace GaStore.Core.Services.Implementations
                 if (bannerDto.ImageFile != null && bannerDto.ImageFile.Length > 0)
                 {
                     // Validate new image
-                    if (!await IsValidImageFileAsync(bannerDto.ImageFile))
+                    if (!await IsValidBannerMediaFileAsync(bannerDto))
                     {
                         response.StatusCode = 400;
-                        response.Message = "Invalid image file format or size.";
+                        response.Message = "Invalid slider media format or size.";
                         return response;
                     }
 
-                    // Delete old image
-                    await DeleteBannerImageAsync(banner.ImageUrl);
+                    await DeleteBannerMediaAsync(banner.ImageUrl);
 
-                    // Upload new image
-                    string newImageUrl = await UploadBannerImageAsync(bannerDto.ImageFile);
+                    string newImageUrl = await UploadBannerMediaAsync(bannerDto);
                     if (string.IsNullOrEmpty(newImageUrl))
                     {
                         response.StatusCode = 400;
-                        response.Message = "Failed to upload new image.";
+                        response.Message = "Failed to upload new media.";
                         return response;
                     }
                     banner.ImageUrl = newImageUrl;
@@ -295,7 +292,7 @@ namespace GaStore.Core.Services.Implementations
                 }
 
                 // Delete image file
-                await DeleteBannerImageAsync(banner.ImageUrl);
+                await DeleteBannerMediaAsync(banner.ImageUrl);
 
                 // Delete from database
                 await _unitOfWork.SliderRepository.Remove(banner.Id);
@@ -316,232 +313,116 @@ namespace GaStore.Core.Services.Implementations
 
         #region Image Handling Methods
 
-        private async Task<string> UploadBannerImageAsync(IFormFile imageFile)
+        private async Task<string?> UploadBannerMediaAsync(BannerDto bannerDto)
         {
             try
             {
-                // Optimize image
-                var optimizedImage = await OptimizeBannerImageAsync(imageFile);
+                if (bannerDto.ImageFile == null)
+                {
+                    return null;
+                }
 
-                // Upload based on configuration
-                if (_appSettings.UseCloudinary && _cloudinaryService != null)
+                if (IsSliderVideoUpload(bannerDto))
                 {
-                    return await UploadToCloudinaryAsync(optimizedImage);
+                    if (_uploadServiceClient?.IsEnabled == true)
+                    {
+                        var fileUpload = await _uploadServiceClient.UploadFileAsync(
+                            bannerDto.ImageFile,
+                            Path.Combine("wwwroot", "videos", "sliders"),
+                            "videos");
+                        return fileUpload.IsSuccess ? fileUpload.FileUrl : null;
+                    }
+
+                    return await SaveVideoLocallyAsync(bannerDto.ImageFile);
                 }
-                else
+
+                if (IsSliderType(bannerDto.Type))
                 {
-                    return await SaveToLocalStorageAsync(optimizedImage);
+                    if (_uploadServiceClient?.IsEnabled == true)
+                    {
+                        var imageUpload = await _uploadServiceClient.UploadImageAsync(
+                            bannerDto.ImageFile,
+                            Path.Combine("wwwroot", "images", "sliders"));
+                        return imageUpload.IsSuccess ? imageUpload.FileUrl : null;
+                    }
+
+                    return await SaveSliderImageLocallyAsync(bannerDto.ImageFile);
                 }
+
+                var uploadPath = string.Equals(bannerDto.Type, "Slider", StringComparison.OrdinalIgnoreCase)
+                    ? Path.Combine("wwwroot", "images", "sliders")
+                    : Path.Combine("wwwroot", "images", "banners");
+
+                var upload = await _imageUploadService.UploadAndOptimizeImageAsync(
+                    bannerDto.ImageFile,
+                    uploadPath);
+                return upload.IsSuccess ? upload.ImageUrl : null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error uploading banner image.");
+                _logger.LogError(ex, "Error uploading banner media.");
                 return null;
             }
         }
 
-        private async Task<IFormFile> OptimizeBannerImageAsync(IFormFile imageFile)
-        {
-            if (!_imageSettings.EnableOptimization)
-                return imageFile;
 
-            try
-            {
-                await using var inputStream = imageFile.OpenReadStream();
-                using var image = await Image.LoadAsync(inputStream);
-
-                // Resize if needed
-                if (image.Width > _imageSettings.MaxWidth || image.Height > _imageSettings.MaxHeight)
-                {
-                    image.Mutate(x => x.Resize(new ResizeOptions
-                    {
-                        Size = CalculateBannerSize(image),
-                        Mode = ResizeMode.Pad,
-                        Compand = true
-                    }));
-                }
-
-                // Determine output format
-                var outputFormat = DetermineBannerOutputFormat(imageFile);
-                var outputStream = new MemoryStream();
-
-                // Encode with optimization
-                await EncodeBannerImageAsync(image, outputStream, outputFormat);
-                outputStream.Position = 0;
-
-                var optimizedBytes = outputStream.ToArray();
-                await outputStream.DisposeAsync();
-
-                return new OptimizedFormFile(
-                    optimizedBytes,
-                    $"{Guid.NewGuid()}{GetExtensionForFormat(outputFormat)}",
-                    GetContentTypeForFormat(outputFormat),
-                    optimizedBytes.Length
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to optimize banner image, using original");
-                return imageFile;
-            }
-        }
-
-        private Size CalculateBannerSize(Image image)
-        {
-            // Maintain aspect ratio but pad to standard banner sizes
-            var targetWidth = _imageSettings.MaxWidth;
-            var targetHeight = _imageSettings.MaxHeight;
-
-            var ratioX = (double)targetWidth / image.Width;
-            var ratioY = (double)targetHeight / image.Height;
-            var ratio = Math.Min(ratioX, ratioY);
-
-            return new Size(
-                (int)(image.Width * ratio),
-                (int)(image.Height * ratio)
-            );
-        }
-
-        private ImageFormat DetermineBannerOutputFormat(IFormFile imageFile)
-        {
-            if (_imageSettings.PreferredFormat != ImageFormat.Auto)
-                return _imageSettings.PreferredFormat;
-
-            var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-            return extension switch
-            {
-                ".png" => _imageSettings.PreserveTransparency ? ImageFormat.Png : ImageFormat.WebP,
-                ".gif" => ImageFormat.Gif,
-                _ => ImageFormat.WebP
-            };
-        }
-
-        private async Task EncodeBannerImageAsync(Image image, Stream outputStream, ImageFormat format)
-        {
-            switch (format)
-            {
-                case ImageFormat.Jpeg:
-                    var jpegEncoder = new JpegEncoder
-                    {
-                        Quality = _imageSettings.JpegQuality,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsJpegAsync(outputStream, jpegEncoder);
-                    break;
-
-                case ImageFormat.Png:
-                    var pngEncoder = new PngEncoder
-                    {
-                        CompressionLevel = _imageSettings.PngCompressionLevel,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsPngAsync(outputStream, pngEncoder);
-                    break;
-
-                case ImageFormat.WebP:
-                    var webpEncoder = new WebpEncoder
-                    {
-                        Quality = _imageSettings.WebpQuality,
-                        Method = WebpEncodingMethod.Default,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsWebpAsync(outputStream, webpEncoder);
-                    break;
-
-                case ImageFormat.Gif:
-                    var gifEncoder = new GifEncoder
-                    {
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsGifAsync(outputStream, gifEncoder);
-                    break;
-
-                default:
-                    await image.SaveAsJpegAsync(outputStream, new JpegEncoder { Quality = 85 });
-                    break;
-            }
-        }
-
-        private async Task<string> UploadToCloudinaryAsync(IFormFile imageFile)
-        {
-            var uploadResult = await _cloudinaryService.UploadImageAsync(imageFile);
-
-            if (!uploadResult.IsSuccess)
-            {
-                _logger.LogError("Cloudinary upload failed: {Error}", uploadResult.ErrorMessage);
-                return null;
-            }
-
-            return uploadResult.Url;
-        }
-
-        private async Task<string> SaveToLocalStorageAsync(IFormFile imageFile)
-        {
-            var uploadsFolder = Path.Combine("wwwroot", "images", "banners");
-            Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            await using var fileStream = new FileStream(filePath, FileMode.Create);
-            await imageFile.CopyToAsync(fileStream);
-
-            return $"{_appSettings.ApiRoot}/images/banners/{fileName}";
-        }
-
-        private async Task DeleteBannerImageAsync(string imageUrl)
+        private async Task DeleteBannerMediaAsync(string imageUrl)
         {
             if (string.IsNullOrEmpty(imageUrl))
                 return;
 
             try
             {
-                if (_appSettings.UseCloudinary && _cloudinaryService != null)
+                if (IsVideoUrl(imageUrl))
                 {
-                    // Extract public ID from Cloudinary URL
-                    var uri = new Uri(imageUrl);
-                    var segments = uri.Segments;
-                    var publicId = Path.GetFileNameWithoutExtension(segments.Last());
-
-                    if (!string.IsNullOrEmpty(publicId))
+                    if (_uploadServiceClient?.IsEnabled == true)
                     {
-                        await _cloudinaryService.DeleteFileAsync(publicId);
+                        await _uploadServiceClient.DeleteFileAsync(imageUrl);
+                        return;
                     }
-                }
-                else
-                {
-                    // Delete from local storage
-                    var fileName = Path.GetFileName(imageUrl);
-                    var imagePath = Path.Combine("wwwroot", "images", "banners", fileName);
 
-                    if (File.Exists(imagePath))
+                    var localPath = TryMapUrlToLocalPath(imageUrl);
+                    if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
                     {
-                        File.Delete(imagePath);
+                        File.Delete(localPath);
                     }
+
+                    return;
                 }
+
+                await _imageUploadService.DeleteImageAsync(imageUrl);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting banner image: {ImageUrl}", imageUrl);
+                _logger.LogError(ex, "Error deleting banner media: {ImageUrl}", imageUrl);
             }
         }
 
-        private async Task<bool> IsValidImageFileAsync(IFormFile imageFile)
+        private async Task<bool> IsValidBannerMediaFileAsync(BannerDto bannerDto)
         {
+            var imageFile = bannerDto.ImageFile;
             if (imageFile == null || imageFile.Length == 0)
                 return false;
 
             // Check file size
-            if (imageFile.Length > _imageSettings.MaxOriginalFileSize)
+            if (imageFile.Length > 10 * 1024 * 1024)
                 return false;
 
             // Check file extension
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
+            var allowedExtensions = string.Equals(bannerDto.Type, "Slider", StringComparison.OrdinalIgnoreCase)
+                ? new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp4", ".webm", ".mov", ".avi", ".m4v" }
+                : new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
             var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
 
             if (!allowedExtensions.Contains(fileExtension))
                 return false;
+
+            if (IsVideoExtension(fileExtension))
+            {
+                return string.IsNullOrWhiteSpace(imageFile.ContentType) ||
+                       imageFile.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
+                       imageFile.ContentType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase);
+            }
 
             // Check image signature
             try
@@ -556,6 +437,98 @@ namespace GaStore.Core.Services.Implementations
             {
                 return false;
             }
+        }
+
+        private async Task<string?> SaveVideoLocallyAsync(IFormFile videoFile)
+        {
+            var uploadsFolder = Path.Combine(GetUploadServiceProjectRoot(), "wwwroot", "videos", "sliders");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(videoFile.FileName).ToLowerInvariant()}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            await using var fileStream = new FileStream(filePath, FileMode.Create);
+            await videoFile.CopyToAsync(fileStream);
+
+            return BuildUploadServiceFileUrl("videos/sliders", fileName);
+        }
+
+        private async Task<string?> SaveSliderImageLocallyAsync(IFormFile imageFile)
+        {
+            var uploadPath = Path.Combine(GetUploadServiceProjectRoot(), "wwwroot", "images", "sliders");
+            var upload = await _imageUploadService.UploadAndOptimizeImageAsync(imageFile, uploadPath);
+
+            if (!upload.IsSuccess)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(upload.PublicId))
+            {
+                return upload.ImageUrl;
+            }
+
+            var fileName = Path.GetFileName(upload.FilePath);
+            return string.IsNullOrWhiteSpace(fileName)
+                ? upload.ImageUrl
+                : BuildUploadServiceFileUrl("images/sliders", fileName);
+        }
+
+        private static bool IsSliderVideoUpload(BannerDto bannerDto)
+        {
+            return IsSliderType(bannerDto.Type) &&
+                   bannerDto.ImageFile != null &&
+                   IsVideoExtension(Path.GetExtension(bannerDto.ImageFile.FileName).ToLowerInvariant());
+        }
+
+        private static bool IsSliderType(string? type)
+        {
+            return string.Equals(type, "Slider", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsVideoUrl(string url)
+        {
+            return IsVideoExtension(Path.GetExtension(url).ToLowerInvariant());
+        }
+
+        private static bool IsVideoExtension(string extension)
+        {
+            return extension is ".mp4" or ".webm" or ".mov" or ".avi" or ".m4v";
+        }
+
+        private string? TryMapUrlToLocalPath(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            var localPath = uri.LocalPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var storageRoot = IsSliderMediaPath(uri.LocalPath)
+                ? Path.Combine(GetUploadServiceProjectRoot(), "wwwroot")
+                : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
+            return Path.Combine(storageRoot, localPath.Replace($"wwwroot{Path.DirectorySeparatorChar}", string.Empty));
+        }
+
+        private static bool IsSliderMediaPath(string localPath)
+        {
+            return localPath.Contains("/images/sliders/", StringComparison.OrdinalIgnoreCase) ||
+                   localPath.Contains("/videos/sliders/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string GetUploadServiceProjectRoot()
+        {
+            return Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "GaStore.UploadService"));
+        }
+
+        private string BuildUploadServiceFileUrl(string folder, string fileName)
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(_uploadServiceOptions.BaseUrl)
+                ? _appSettings.ApiRoot
+                : _uploadServiceOptions.BaseUrl;
+
+            return $"{baseUrl?.TrimEnd('/')}/{folder.Trim('/')}/{fileName}";
         }
 
         private bool IsImageSignatureValid(byte[] buffer)
@@ -584,73 +557,9 @@ namespace GaStore.Core.Services.Implementations
             return false;
         }
 
-        private string GetContentTypeForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => "image/jpeg",
-                ImageFormat.Png => "image/png",
-                ImageFormat.WebP => "image/webp",
-                ImageFormat.Gif => "image/gif",
-                _ => "image/jpeg"
-            };
-        }
-
-        private string GetExtensionForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => ".jpg",
-                ImageFormat.Png => ".png",
-                ImageFormat.WebP => ".webp",
-                ImageFormat.Gif => ".gif",
-                _ => ".jpg"
-            };
-        }
-
         #endregion
 
         #region Helper Classes and Methods
-
-        private class OptimizedFormFile : IFormFile
-        {
-            private readonly byte[] _fileData;
-            private readonly string _fileName;
-            private readonly string _contentType;
-            private readonly long _length;
-
-            public OptimizedFormFile(byte[] fileData, string fileName, string contentType, long length)
-            {
-                _fileData = fileData ?? throw new ArgumentNullException(nameof(fileData));
-                _fileName = fileName ?? "optimized-banner.jpg";
-                _contentType = contentType ?? "image/jpeg";
-                _length = length;
-            }
-
-            public string ContentType => _contentType;
-            public string ContentDisposition => $"form-data; name=\"file\"; filename=\"{_fileName}\"";
-            public IHeaderDictionary Headers => new HeaderDictionary();
-            public long Length => _length;
-            public string Name => "file";
-            public string FileName => _fileName;
-
-            public void CopyTo(Stream target)
-            {
-                target?.Write(_fileData, 0, _fileData.Length);
-            }
-
-            public async Task CopyToAsync(Stream target, CancellationToken cancellationToken = default)
-            {
-                if (target == null)
-                    throw new ArgumentNullException(nameof(target));
-
-                await target.WriteAsync(_fileData, cancellationToken);
-            }
-            public Stream OpenReadStream()
-            {
-                return new MemoryStream(_fileData, false);
-            }
-        }
 
         private ValidationResult ValidateBannerInput(BannerDto bannerDto)
         {
@@ -658,7 +567,7 @@ namespace GaStore.Core.Services.Implementations
                 return ValidationResult.Failure("Banner data is required.");
 
             if (bannerDto.ImageFile == null || bannerDto.ImageFile.Length == 0)
-                return ValidationResult.Failure("Banner image is required.");
+                return ValidationResult.Failure("Banner media is required.");
 
             if (string.IsNullOrWhiteSpace(bannerDto.Type))
                 return ValidationResult.Failure("Banner type is required.");

@@ -38,9 +38,23 @@ namespace GaStore.Controllers
 			return StatusCode(response.Status, response);
 		}
 
-		//[Authorize(Roles = CustomRoles.User)]
-		// GET: api/Categories/5
-		[HttpGet("{id}")]
+        [HttpGet("active")]
+        public async Task<ActionResult<PaginatedServiceResponse<List<Brand>>>> GetActiveCategories(
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var response = await _categoryService.GetCategoriesAsync(searchTerm, pageNumber, pageSize);
+            //get list of active categories only
+			if (response.Status == 200) {
+								response.Data = response.Data?.Where(c => c.IsActive == true).ToList();
+            }
+            return StatusCode(response.Status, response);
+        }
+
+        //[Authorize(Roles = CustomRoles.User)]
+        // GET: api/Categories/5
+        [HttpGet("{id}")]
 		public async Task<ActionResult<ServiceResponse<CategoryDto>>> GetCategory(Guid id)
 		{
 			var response = await _categoryService.GetCategoryByIdAsync(id);

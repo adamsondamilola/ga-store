@@ -12,20 +12,15 @@ using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using GaStore.Core.Services.Cloudinary;
 using GaStore.Core.Services.Interfaces;
-using GaStore.Data.Dtos.ImageUploads;
 using GaStore.Data.Dtos.ProductsDto;
 using GaStore.Data.Entities.Products;
 using GaStore.Data.Entities.Users;
-using GaStore.Data.Enums;
 using GaStore.Data.Models;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Shared;
 using GaStore.Shared.Constants;
-using static Org.BouncyCastle.Asn1.Cmp.Challenge;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -34,24 +29,19 @@ namespace GaStore.Core.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CategoryService> _logger;
         private readonly IMapper _mapper;
-        private readonly AppSettings _appSettings;
-        private readonly ICloudinaryService _cloudinaryService;
-        private readonly ImageOptimizationSettings _imageSettings;
+        private readonly IImageUploadService _imageUploadService;
 
         public CategoryService(
             IUnitOfWork unitOfWork,
             ILogger<CategoryService> logger,
             IMapper mapper,
             IOptions<AppSettings> appSettings,
-            ICloudinaryService cloudinaryService = null,
-            IOptions<ImageOptimizationSettings> imageSettings = null)
+            IImageUploadService imageUploadService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
-            _appSettings = appSettings.Value;
-            _cloudinaryService = cloudinaryService;
-            _imageSettings = imageSettings?.Value ?? new ImageOptimizationSettings();
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<PaginatedServiceResponse<List<CategoryDto>>> GetCategoriesAsync(string? searchTerm, int pageNumber, int pageSize)
@@ -88,7 +78,7 @@ namespace GaStore.Core.Services.Implementations
 
                 var pagedCategories = categories
                     .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
+                    .Take(pageSize).OrderBy(d => d.DateCreated)
                     .ToList();
 
                 var categoryDtos = _mapper.Map<List<CategoryDto>>(pagedCategories);
@@ -583,18 +573,10 @@ namespace GaStore.Core.Services.Implementations
         {
             try
             {
-                // Optimize image
-                var optimizedImage = await OptimizeCategoryImageAsync(imageFile);
-
-                // Upload based on configuration
-                if (_appSettings.UseCloudinary && _cloudinaryService != null)
-                {
-                    return await UploadToCloudinaryAsync(optimizedImage, "categories");
-                }
-                else
-                {
-                    return await SaveToLocalStorageAsync(optimizedImage, "categories");
-                }
+                var upload = await _imageUploadService.UploadAndOptimizeImageAsync(
+                    imageFile,
+                    Path.Combine("wwwroot", "images", "categories"));
+                return upload.IsSuccess ? upload.ImageUrl : null;
             }
             catch (Exception ex)
             {
@@ -603,156 +585,6 @@ namespace GaStore.Core.Services.Implementations
             }
         }
 
-        private async Task<IFormFile> OptimizeCategoryImageAsync(IFormFile imageFile)
-        {
-            if (!_imageSettings.EnableOptimization)
-                return imageFile;
-
-            try
-            {
-                await using var inputStream = imageFile.OpenReadStream();
-                using var image = await Image.LoadAsync(inputStream);
-
-                // Resize if needed (category images are typically smaller)
-                if (image.Width > _imageSettings.MaxWidth || image.Height > _imageSettings.MaxHeight)
-                {
-                    image.Mutate(x => x.Resize(new ResizeOptions
-                    {
-                        Size = CalculateCategoryImageSize(image),
-                        Mode = ResizeMode.Pad,
-                        Compand = true
-                    }));
-                }
-
-                // Determine output format
-                var outputFormat = DetermineCategoryImageFormat(imageFile);
-                var outputStream = new MemoryStream();
-
-                // Encode with optimization
-                await EncodeCategoryImageAsync(image, outputStream, outputFormat);
-                outputStream.Position = 0;
-
-                var optimizedBytes = outputStream.ToArray();
-                await outputStream.DisposeAsync();
-
-                return new OptimizedFormFile(
-                    optimizedBytes,
-                    $"{Guid.NewGuid()}{GetExtensionForFormat(outputFormat)}",
-                    GetContentTypeForFormat(outputFormat),
-                    optimizedBytes.Length
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to optimize category image, using original");
-                return imageFile;
-            }
-        }
-
-        private Size CalculateCategoryImageSize(Image image)
-        {
-            // Category images might need different sizing - smaller than banners
-            var targetWidth = Math.Min(_imageSettings.MaxWidth, 800); // Max 800px for categories
-            var targetHeight = Math.Min(_imageSettings.MaxHeight, 600); // Max 600px for categories
-
-            var ratioX = (double)targetWidth / image.Width;
-            var ratioY = (double)targetHeight / image.Height;
-            var ratio = Math.Min(ratioX, ratioY);
-
-            return new Size(
-                (int)(image.Width * ratio),
-                (int)(image.Height * ratio)
-            );
-        }
-
-        private ImageFormat DetermineCategoryImageFormat(IFormFile imageFile)
-        {
-            if (_imageSettings.PreferredFormat != ImageFormat.Auto)
-                return _imageSettings.PreferredFormat;
-
-            var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-            // For category images, WebP is usually best for web display
-            return extension switch
-            {
-                ".png" => _imageSettings.PreserveTransparency ? ImageFormat.Png : ImageFormat.WebP,
-                ".gif" => ImageFormat.Gif, // Keep GIF for animated category icons if needed
-                _ => ImageFormat.WebP
-            };
-        }
-
-        private async Task EncodeCategoryImageAsync(Image image, Stream outputStream, ImageFormat format)
-        {
-            switch (format)
-            {
-                case ImageFormat.Jpeg:
-                    var jpegEncoder = new JpegEncoder
-                    {
-                        Quality = _imageSettings.JpegQuality,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsJpegAsync(outputStream, jpegEncoder);
-                    break;
-
-                case ImageFormat.Png:
-                    var pngEncoder = new PngEncoder
-                    {
-                        CompressionLevel = _imageSettings.PngCompressionLevel,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsPngAsync(outputStream, pngEncoder);
-                    break;
-
-                case ImageFormat.WebP:
-                    var webpEncoder = new WebpEncoder
-                    {
-                        Quality = _imageSettings.WebpQuality,
-                        Method = WebpEncodingMethod.Default,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsWebpAsync(outputStream, webpEncoder);
-                    break;
-
-                case ImageFormat.Gif:
-                    var gifEncoder = new GifEncoder
-                    {
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsGifAsync(outputStream, gifEncoder);
-                    break;
-
-                default:
-                    await image.SaveAsWebpAsync(outputStream, new WebpEncoder { Quality = 80 });
-                    break;
-            }
-        }
-
-        private async Task<string> UploadToCloudinaryAsync(IFormFile imageFile, string folder)
-        {
-            var uploadResult = await _cloudinaryService.UploadImageAsync(imageFile);
-
-            if (!uploadResult.IsSuccess)
-            {
-                _logger.LogError("Cloudinary upload failed: {Error}", uploadResult.ErrorMessage);
-                return null;
-            }
-
-            return uploadResult.Url;
-        }
-
-        private async Task<string> SaveToLocalStorageAsync(IFormFile imageFile, string folder)
-        {
-            var uploadsFolder = Path.Combine("wwwroot", "images", folder);
-            Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            await using var fileStream = new FileStream(filePath, FileMode.Create);
-            await imageFile.CopyToAsync(fileStream);
-
-            return $"{_appSettings.ApiRoot}/images/{folder}/{fileName}";
-        }
 
         private async Task DeleteCategoryImageAsync(string imageUrl)
         {
@@ -761,29 +593,7 @@ namespace GaStore.Core.Services.Implementations
 
             try
             {
-                if (_appSettings.UseCloudinary && _cloudinaryService != null)
-                {
-                    // Extract public ID from Cloudinary URL
-                    var uri = new Uri(imageUrl);
-                    var segments = uri.Segments;
-                    var publicId = Path.GetFileNameWithoutExtension(segments.Last());
-
-                    if (!string.IsNullOrEmpty(publicId))
-                    {
-                        await _cloudinaryService.DeleteFileAsync(publicId);
-                    }
-                }
-                else
-                {
-                    // Delete from local storage
-                    var fileName = Path.GetFileName(imageUrl);
-                    var imagePath = Path.Combine("wwwroot", "images", "categories", fileName);
-
-                    if (File.Exists(imagePath))
-                    {
-                        File.Delete(imagePath);
-                    }
-                }
+                await _imageUploadService.DeleteImageAsync(imageUrl);
             }
             catch (Exception ex)
             {
@@ -797,7 +607,7 @@ namespace GaStore.Core.Services.Implementations
                 return false;
 
             // Check file size
-            if (imageFile.Length > _imageSettings.MaxOriginalFileSize)
+            if (imageFile.Length > 10 * 1024 * 1024)
                 return false;
 
             // Check file extension
@@ -852,74 +662,9 @@ namespace GaStore.Core.Services.Implementations
             return false;
         }
 
-        private string GetContentTypeForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => "image/jpeg",
-                ImageFormat.Png => "image/png",
-                ImageFormat.WebP => "image/webp",
-                ImageFormat.Gif => "image/gif",
-                _ => "image/jpeg"
-            };
-        }
-
-        private string GetExtensionForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => ".jpg",
-                ImageFormat.Png => ".png",
-                ImageFormat.WebP => ".webp",
-                ImageFormat.Gif => ".gif",
-                _ => ".jpg"
-            };
-        }
-
         #endregion
 
         #region Helper Classes and Methods
-
-        private class OptimizedFormFile : IFormFile
-        {
-            private readonly byte[] _fileData;
-            private readonly string _fileName;
-            private readonly string _contentType;
-            private readonly long _length;
-
-            public OptimizedFormFile(byte[] fileData, string fileName, string contentType, long length)
-            {
-                _fileData = fileData ?? throw new ArgumentNullException(nameof(fileData));
-                _fileName = fileName ?? "optimized-category.jpg";
-                _contentType = contentType ?? "image/jpeg";
-                _length = length;
-            }
-
-            public string ContentType => _contentType;
-            public string ContentDisposition => $"form-data; name=\"file\"; filename=\"{_fileName}\"";
-            public IHeaderDictionary Headers => new HeaderDictionary();
-            public long Length => _length;
-            public string Name => "file";
-            public string FileName => _fileName;
-
-            public void CopyTo(Stream target)
-            {
-                target?.Write(_fileData, 0, _fileData.Length);
-            }
-
-            public async Task CopyToAsync(Stream target, CancellationToken cancellationToken = default)
-            {
-                if (target == null)
-                    throw new ArgumentNullException(nameof(target));
-
-                await target.WriteAsync(_fileData, cancellationToken);
-            }
-
-            public Stream OpenReadStream()
-            {
-                return new MemoryStream(_fileData, false);
-            }
-        }
 
         private ValidationResult ValidateCategoryInput(CategoryDto categoryDto)
         {

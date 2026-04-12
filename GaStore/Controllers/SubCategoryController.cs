@@ -57,7 +57,7 @@ namespace GaStore.Controllers
 		// POST: api/SubCategories
 		[HttpPost]
 		public async Task<ActionResult<ServiceResponse<SubCategoryDto>>> CreateSubCategory(
-			[FromBody] SubCategoryDto categoryDto) // UserId is passed via header
+			[FromForm] SubCategoryDto categoryDto) // UserId is passed via header
 		{
 			if (!ModelState.IsValid)
 			{
@@ -81,7 +81,7 @@ namespace GaStore.Controllers
 		[Authorize(Roles = CustomRoles.Admin)]
 		// PUT: api/SubCategories/5
 		[HttpPut()]
-		public async Task<ActionResult<ServiceResponse<SubCategoryDto>>> UpdateSubCategory([FromBody] SubCategoryDto categoryDto) // UserId is passed via header
+		public async Task<ActionResult<ServiceResponse<SubCategoryDto>>> UpdateSubCategory([FromForm] SubCategoryDto categoryDto) // UserId is passed via header
 		{
 			if (!ModelState.IsValid)
 			{

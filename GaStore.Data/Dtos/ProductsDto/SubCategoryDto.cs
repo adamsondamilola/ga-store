@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
+using Microsoft.AspNetCore.Http;
 using GaStore.Data.Entities.Products;
 
 namespace GaStore.Data.Dtos.ProductsDto
@@ -17,6 +14,7 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public bool HasStyles { get; set; }
 		public bool IsActive { get; set; } = true;
 		public string? ImageUrl { get; set; }
+		public IFormFile? ImageFile { get; set; }
         public Category? Category { get; set; }
     }
 }

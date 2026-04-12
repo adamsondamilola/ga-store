@@ -64,18 +64,14 @@ const SliderCom = ({ product }) => {
 
   return (
    <div className="w-full">
-  <div className="container mx-auto md:px-4 px-4">
-    <div className="flex flex-col lg:flex-row gap-8 md:h-[750px] lg:h-[350px]">
-      {/* Slider - takes 2/3 width on large screens, full width on mobile */}
-      <div className="w-full lg:w-2/3">
+  <div className="container mx-auto px-4">
+    <div className="w-full">
+      <div className="w-full">
         <ImageSlider images={images} />
       </div>
-
-      {/* Featured Products - takes 1/3 width on large screens, full width on mobile */}
-      <div className="w-full lg:w-1/3">
+      <div className="mt-6 w-full">
         <Banners/>
       </div>
-    
     </div>
   </div>
   <div className='md:mt-5'></div>

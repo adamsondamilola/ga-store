@@ -19,13 +19,20 @@ namespace GaStore.Core.Services.Implementations
         private readonly ILogger<ProductTypeService> _logger;
         private readonly IMapper _mapper;
         private readonly AppSettings _appSettings;
+        private readonly IImageUploadService _imageUploadService;
 
-        public ProductTypeService(IUnitOfWork unitOfWork, ILogger<ProductTypeService> logger, IMapper mapper, IOptions<AppSettings> appSettings)
+        public ProductTypeService(
+            IUnitOfWork unitOfWork,
+            ILogger<ProductTypeService> logger,
+            IMapper mapper,
+            IOptions<AppSettings> appSettings,
+            IImageUploadService imageUploadService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
             _appSettings = appSettings.Value;
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<PaginatedServiceResponse<List<ProductTypeDto>>> GetProductTypesAsync(string? searchTerm, Guid? subCategoryId, int pageNumber, int pageSize)
@@ -151,17 +158,12 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Handle image upload
-                string? imageUrl = null;
-                if (productTypeDto.ImageFile != null && productTypeDto.ImageFile.Length > 0)
+                var imageUrl = await ResolveImageUrlAsync(productTypeDto.ImageFile, productTypeDto.ImageUrl);
+                if (productTypeDto.ImageFile != null && imageUrl == null)
                 {
-                    imageUrl = await UploadImageAsync(productTypeDto.ImageFile, "producttypes");
-                    if (imageUrl == null)
-                    {
-                        response.StatusCode = 400;
-                        response.Message = "Invalid image file.";
-                        return response;
-                    }
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
                 }
 
                 // Map DTO to entity
@@ -240,25 +242,22 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Handle image update
-                if (productTypeDto.ImageFile != null && productTypeDto.ImageFile.Length > 0)
+                var imageUrl = await ResolveImageUrlAsync(productTypeDto.ImageFile, productTypeDto.ImageUrl, productType.ImageUrl);
+                if (productTypeDto.ImageFile != null && imageUrl == null)
                 {
-                    var imageUrl = await UploadImageAsync(productTypeDto.ImageFile, "producttypes");
-                    if (imageUrl == null)
-                    {
-                        response.StatusCode = 400;
-                        response.Message = "Invalid image file.";
-                        return response;
-                    }
-
-                    // Delete old image
-                    if (!string.IsNullOrEmpty(productType.ImageUrl))
-                    {
-                        DeleteImage(productType.ImageUrl, "producttypes");
-                    }
-
-                    productType.ImageUrl = imageUrl;
+                    response.StatusCode = 400;
+                    response.Message = "Invalid image file.";
+                    return response;
                 }
+
+                if (productTypeDto.ImageFile != null &&
+                    !string.IsNullOrWhiteSpace(productType.ImageUrl) &&
+                    !string.Equals(productType.ImageUrl, imageUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    DeleteImage(productType.ImageUrl, "producttypes");
+                }
+
+                productType.ImageUrl = imageUrl;
 
                 // Update fields
                 productType.Name = productTypeDto.Name;
@@ -371,38 +370,28 @@ namespace GaStore.Core.Services.Implementations
 
         private async Task<string?> UploadImageAsync(IFormFile imageFile, string folderName)
         {
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-            var maxFileSize = 5 * 1024 * 1024; // 5MB
-            var uploadsFolder = Path.Combine("wwwroot", "images", folderName);
-            var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            var upload = await _imageUploadService.UploadAndOptimizeImageAsync(imageFile, Path.Combine("wwwroot", "images", folderName));
+            return upload.IsSuccess ? upload.ImageUrl : null;
+        }
 
-            if (!allowedExtensions.Contains(fileExtension) || imageFile.Length > maxFileSize)
+        private async Task<string?> ResolveImageUrlAsync(IFormFile? imageFile, string? imageUrl, string? existingImageUrl = null)
+        {
+            if (imageFile != null && imageFile.Length > 0)
             {
-                return null;
+                return await UploadImageAsync(imageFile, "producttypes");
             }
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            if (!string.IsNullOrWhiteSpace(imageUrl))
             {
-                await imageFile.CopyToAsync(stream);
+                return imageUrl.Trim();
             }
 
-            return $"{_appSettings.ApiRoot}/images/{folderName}/{uniqueFileName}";
+            return existingImageUrl;
         }
 
         private void DeleteImage(string imageUrl, string folderName)
         {
-            var fileName = Path.GetFileName(imageUrl);
-            var imagePath = Path.Combine("wwwroot", "images", folderName, fileName);
-            if (File.Exists(imagePath))
-            {
-                File.Delete(imagePath);
-            }
+            _imageUploadService.DeleteImageAsync(imageUrl).GetAwaiter().GetResult();
         }
     }
 }

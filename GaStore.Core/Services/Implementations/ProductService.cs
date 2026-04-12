@@ -28,11 +28,13 @@ namespace GaStore.Core.Services.Implementations
 		private readonly IProductVariantService _productVariantService;
 		private readonly IPricingTierService _pricingTierService;
 		private readonly IProductSpecificationService _productSpecificationService;
+		private readonly IImageUploadService _imageUploadService;
 		private readonly ITagService _tagService;
 		private readonly AppSettings _appSettings;
 
 		public ProductService(DatabaseContext context, IUnitOfWork unitOfWork, ILogger<UserService> logger, IMapper mapper, IProductImageService productImageService, IProductVariantService productVariantService, 
 			IPricingTierService pricingTierService, IProductSpecificationService productSpecificationService,
+			IImageUploadService imageUploadService,
 			IOptions<AppSettings> appSettings, ITagService tagService)
 		{
 			_context = context;
@@ -43,6 +45,7 @@ namespace GaStore.Core.Services.Implementations
 			_productImageService = productImageService;
 			_productVariantService = productVariantService;
 			_productSpecificationService = productSpecificationService;
+			_imageUploadService = imageUploadService;
 			_appSettings = appSettings.Value;
 			_tagService = tagService;
 		}
@@ -1658,12 +1661,7 @@ namespace GaStore.Core.Services.Implementations
 				{
 					foreach (var image in images)
 					{
-						// Delete physical file
-						var imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", image.ImageUrl.Replace(_appSettings.ApiRoot, "").TrimStart('/'));
-						if (File.Exists(imagePath))
-						{
-							File.Delete(imagePath);
-						}
+						await _imageUploadService.DeleteImageAsync(image.ImageUrl);
 
 						// Delete from database
 						await _unitOfWork.ProductImageRepository.Remove(image.Id);

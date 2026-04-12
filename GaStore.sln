@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GaStore.Infrastructure", "G
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GaStore.Shared", "GaStore.Shared\GaStore.Shared.csproj", "{18CFC975-FFB8-417A-A22A-36C361FC9285}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GaStore.UploadService", "GaStore.UploadService\GaStore.UploadService.csproj", "{CF1681EA-6B8A-4DD9-8CC5-9444177EA83F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{18CFC975-FFB8-417A-A22A-36C361FC9285}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18CFC975-FFB8-417A-A22A-36C361FC9285}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18CFC975-FFB8-417A-A22A-36C361FC9285}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF1681EA-6B8A-4DD9-8CC5-9444177EA83F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF1681EA-6B8A-4DD9-8CC5-9444177EA83F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF1681EA-6B8A-4DD9-8CC5-9444177EA83F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF1681EA-6B8A-4DD9-8CC5-9444177EA83F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

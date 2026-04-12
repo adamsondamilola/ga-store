@@ -13,6 +13,9 @@ const SliderFormModal = ({ formData, onClose, onSave }) => {
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
+  const isVideoPreview = previewUrl
+    ? /\.(mp4|webm|mov|avi|m4v)(\?.*)?$/i.test(previewUrl)
+    : false;
 
   useEffect(() => {
     if (formData) {
@@ -104,13 +107,13 @@ const SliderFormModal = ({ formData, onClose, onSave }) => {
 
           <div className="mb-4">
             <label htmlFor="imageFile" className="block text-sm font-medium text-gray-700 mb-1">
-              Upload Image
+              Upload Image or Video
             </label>
             <input
               id="imageFile"
               className="mb-2"
               type="file"
-              accept="image/*"
+              accept="image/*,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mp4v-es"
               name="imageFile"
               onChange={handleChange}
             />
@@ -118,11 +121,20 @@ const SliderFormModal = ({ formData, onClose, onSave }) => {
 
           {previewUrl && (
             <div className='flex justify-center mb-4'>
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="w-24 h-14 object-cover rounded border"
-              />
+              {isVideoPreview ? (
+                <video
+                  src={previewUrl}
+                  className="w-32 h-20 object-cover rounded border"
+                  controls
+                  muted
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-24 h-14 object-cover rounded border"
+                />
+              )}
             </div>
           )}
 

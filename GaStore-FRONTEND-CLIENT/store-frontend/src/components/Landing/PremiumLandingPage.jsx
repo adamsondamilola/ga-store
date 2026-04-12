@@ -45,13 +45,21 @@ export default function PremiumLandingPage() {
   const hasHeroBanner = Boolean(
     heroBanner && (heroBanner.imageUrl || heroBanner.title || (heroBanner.hasLink && heroBanner.link))
   );
+  const getMediaUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://res.cloudinary.com/")) {
+      return url.replace("http://", "https://");
+    }
+    return url;
+  };
+  const isVideoBanner = (url) => /\.(mp4|webm|mov|avi|m4v)(\?.*)?$/i.test(getMediaUrl(url));
 
   useEffect(() => {
     const fetchHomepageData = async () => {
       try {
         const [sliderResponse, categoryResponse, featuredResponse, arrivalsResponse, limitedOfferResponse] = await Promise.all([
           requestHandler.get(`${endpointsPath.banner}?pageNumber=1&pageSize=1&type=Slider`),
-          requestHandler.get(`${endpointsPath.category}?pageNumber=1&pageSize=6`),
+          requestHandler.get(`${endpointsPath.category}/active?pageNumber=1&pageSize=30`),
           requestHandler.get(`${endpointsPath.featuredProduct}?pageNumber=1&pageSize=8`),
           requestHandler.get(`${endpointsPath.product}?pageNumber=1&pageSize=8`),
           requestHandler.get(`${endpointsPath.limitedOffer}/active-homepage`),
@@ -133,15 +141,31 @@ export default function PremiumLandingPage() {
     <main className="w-full space-y-8 px-3 pb-12 pt-2 md:px-6 md:space-y-10 xl:px-8">
       {hasHeroBanner ? (
         <section className="overflow-hidden rounded-[24px] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-          <div
-            className="relative min-h-[310px] bg-cover bg-center md:min-h-[430px]"
-            style={{
-              backgroundImage: heroBanner?.imageUrl
-                ? `linear-gradient(90deg, rgba(31,113,196,0.78) 0%, rgba(31,113,196,0.22) 48%, rgba(255,255,255,0) 72%), url(${heroBanner.imageUrl})`
-                : "linear-gradient(90deg, rgba(31,113,196,0.92) 0%, rgba(31,113,196,0.70) 48%, rgba(31,113,196,0.35) 100%)",
-            }}
-          >
-            <div className="flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
+          <div className="relative min-h-[310px] md:min-h-[430px]">
+            {heroBanner?.imageUrl ? (
+              isVideoBanner(heroBanner.imageUrl) ? (
+                <video
+                  key={heroBanner.imageUrl}
+                  src={getMediaUrl(heroBanner.imageUrl)}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${getMediaUrl(heroBanner.imageUrl)})`,
+                  }}
+                />
+              )
+            ) : (
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,113,196,0.92)_0%,rgba(31,113,196,0.70)_48%,rgba(31,113,196,0.35)_100%)]" />
+            )}
+            <div className="absolute inset-0 z-10 bg-gradient-to-r from-[rgba(31,113,196,0.82)] via-[rgba(31,113,196,0.38)] to-[rgba(255,255,255,0.05)]" />
+            <div className="relative z-20 flex min-h-[310px] max-w-[520px] flex-col justify-center px-6 py-8 text-white md:min-h-[430px] md:px-10">
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={heroBanner?.hasLink && heroBanner?.link ? heroBanner.link : "/product"}
@@ -164,7 +188,7 @@ export default function PremiumLandingPage() {
 
       <section id="categories" className="rounded-[24px] bg-white px-4 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 md:px-6 md:py-8">
         <SectionHeading title="Shop by Category" subtitle="Browse Our Top Categories" />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {categories.map((category) => (
             <Link
               key={category.name}
@@ -172,7 +196,7 @@ export default function PremiumLandingPage() {
               className="group relative overflow-hidden rounded-[16px] shadow-[0_8px_20px_rgba(15,23,42,0.10)]"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-              <img src={category.imageUrl || AppImages.default} alt={category.name} className="h-[135px] w-full object-cover transition duration-300 group-hover:scale-105 md:h-[190px]" />
+              <img src={category.imageUrl || AppImages.default} alt={category.name} className="h-[135px] w-full object-cover transition duration-300 group-hover:scale-105 md:h-[320px]" />
               <div className="absolute inset-x-0 bottom-0 p-3 text-white md:p-4">
                 <h3 className="text-sm font-bold md:text-lg">{category.name}</h3>
                 <p className="mt-1 hidden text-xs text-white/85 md:block">

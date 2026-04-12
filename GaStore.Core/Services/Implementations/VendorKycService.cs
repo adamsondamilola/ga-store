@@ -14,6 +14,7 @@ using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Models.Database;
 using GaStore.Shared;
 using GaStore.Shared.Constants;
+using GaStore.Shared.Uploads;
 using static GaStore.Data.Dtos.UsersDto.UserRolesDto;
 
 namespace GaStore.Core.Services.Implementations
@@ -28,9 +29,11 @@ namespace GaStore.Core.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IImageUploadService _imageUploadService;
         private readonly ICloudinaryService? _cloudinaryService;
+        private readonly IUploadServiceClient? _uploadServiceClient;
         private readonly IMapper _mapper;
         private readonly ILogger<VendorKycService> _logger;
         private readonly AppSettings _appSettings;
+        private readonly UploadServiceOptions _uploadServiceOptions;
 
         public VendorKycService(
             DatabaseContext context,
@@ -39,7 +42,9 @@ namespace GaStore.Core.Services.Implementations
             IMapper mapper,
             ILogger<VendorKycService> logger,
             IOptions<AppSettings> appSettings,
-            ICloudinaryService? cloudinaryService = null)
+            IOptions<UploadServiceOptions>? uploadServiceOptions = null,
+            ICloudinaryService? cloudinaryService = null,
+            IUploadServiceClient? uploadServiceClient = null)
         {
             _context = context;
             _unitOfWork = unitOfWork;
@@ -47,7 +52,9 @@ namespace GaStore.Core.Services.Implementations
             _mapper = mapper;
             _logger = logger;
             _appSettings = appSettings.Value;
+            _uploadServiceOptions = uploadServiceOptions?.Value ?? new UploadServiceOptions();
             _cloudinaryService = cloudinaryService;
+            _uploadServiceClient = uploadServiceClient;
         }
 
         public async Task<ServiceResponse<VendorKycStatusDto>> BecomeVendorAsync(Guid userId)
@@ -433,13 +440,21 @@ namespace GaStore.Core.Services.Implementations
                 return (false, null, "Only JPG, PNG, or PDF files up to 10MB are allowed.");
             }
 
+            if (_uploadServiceClient?.IsEnabled == true)
+            {
+                var upload = await _uploadServiceClient.UploadFileAsync(file, folder, "documents");
+                return upload.IsSuccess
+                    ? (true, upload.FileUrl, null)
+                    : (false, null, upload.ErrorMessage);
+            }
+
             if (_appSettings.UseCloudinary && _cloudinaryService != null)
             {
                 var upload = await _cloudinaryService.UploadFileAsync(file);
                 return upload.IsSuccess ? (true, upload.Url, null) : (false, null, upload.ErrorMessage);
             }
 
-            var monthFolder = Path.Combine(Directory.GetCurrentDirectory(), folder, DateTime.UtcNow.ToString("yyyy-MM"));
+            var monthFolder = ResolveUploadServiceFolder(folder, DateTime.UtcNow.ToString("yyyy-MM"));
             Directory.CreateDirectory(monthFolder);
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -451,9 +466,50 @@ namespace GaStore.Core.Services.Implementations
                 await file.CopyToAsync(stream);
             }
 
-            var relativePath = fullPath.Replace(Directory.GetCurrentDirectory(), string.Empty).Replace("\\", "/");
-            var url = $"{_appSettings.ApiRoot?.TrimEnd('/')}{relativePath.Replace("/wwwroot", string.Empty)}";
+            var url = BuildUploadServiceFileUrl(fullPath);
             return (true, url, null);
+        }
+
+        private string ResolveUploadServiceFolder(string folder, string? childFolder = null)
+        {
+            var normalizedFolder = folder
+                .Replace('/', Path.DirectorySeparatorChar)
+                .TrimStart(Path.DirectorySeparatorChar);
+
+            if (normalizedFolder.StartsWith($"wwwroot{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            {
+                normalizedFolder = normalizedFolder[(($"wwwroot{Path.DirectorySeparatorChar}").Length)..];
+            }
+
+            var basePath = Path.Combine(GetUploadServiceProjectRoot(), "wwwroot", normalizedFolder);
+            return string.IsNullOrWhiteSpace(childFolder) ? basePath : Path.Combine(basePath, childFolder);
+        }
+
+        private string BuildUploadServiceFileUrl(string filePath)
+        {
+            var wwwrootPath = Path.Combine(GetUploadServiceProjectRoot(), "wwwroot");
+            var relativePath = filePath[wwwrootPath.Length..].Replace("\\", "/");
+            if (!relativePath.StartsWith('/'))
+            {
+                relativePath = "/" + relativePath;
+            }
+
+            var baseUrl = string.IsNullOrWhiteSpace(_uploadServiceOptions.BaseUrl)
+                ? _appSettings.ApiRoot
+                : _uploadServiceOptions.BaseUrl;
+
+            return $"{baseUrl?.TrimEnd('/')}{relativePath}";
+        }
+
+        private string GetUploadServiceProjectRoot()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            if (currentDirectory.EndsWith("GaStore.UploadService", StringComparison.OrdinalIgnoreCase))
+            {
+                return currentDirectory;
+            }
+
+            return Path.GetFullPath(Path.Combine(currentDirectory, "..", "GaStore.UploadService"));
         }
 
         private async Task<bool> ValidateDocumentAsync(IFormFile file)

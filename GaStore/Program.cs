@@ -36,6 +36,7 @@ using GaStore.Infrastructure.Seeding;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Middleware;
 using GaStore.Models.Database;
+using GaStore.Shared.Uploads;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,7 +53,8 @@ IServiceCollection serviceCollection = builder.Services.AddDbContext<DatabaseCon
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register image optimization settings
-builder.Services.Configure<ImageOptimizationSettings>(builder.Configuration.GetSection("ImageOptimization"));
+builder.Services.Configure<ImageOptimizationSettings>(builder.Configuration.GetSection("ImageOptimizationSettings"));
+builder.Services.Configure<UploadServiceOptions>(builder.Configuration.GetSection(UploadServiceOptions.SectionName));
 
 
 
@@ -128,6 +130,7 @@ builder.Services.AddScoped<IGoogleMapService, GoogleMapService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddHttpClient<IRecaptchaService, RecaptchaService>();
+builder.Services.AddHttpClient<IUploadServiceClient, UploadServiceClient>();
 builder.Services.AddScoped<IImageUploadService, ImageUploadService>();
 builder.Services.AddScoped<IManualPaymentService, ManualPaymentService>();
 builder.Services.AddScoped<IPaymentMethodConfigurationService, PaymentMethodConfigurationService>();
@@ -341,7 +344,7 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
-await CategoryHierarchySeeder.SeedAsync(app.Services);
+//await CategoryHierarchySeeder.SeedAsync(app.Services);
 
 app.UseStaticFiles();
 // Configure the HTTP request pipeline.

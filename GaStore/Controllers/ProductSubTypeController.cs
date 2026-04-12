@@ -64,7 +64,7 @@ namespace GaStore.Controllers
 
         [Authorize(Roles = CustomRoles.Admin)]
         [HttpPost]
-        public async Task<ActionResult<ServiceResponse<ProductSubTypeDto>>> CreateProductSubType([FromBody] CreateProductSubTypeDto productSubTypeDto)
+        public async Task<ActionResult<ServiceResponse<ProductSubTypeDto>>> CreateProductSubType([FromForm] CreateProductSubTypeDto productSubTypeDto)
         {
             if (!ModelState.IsValid)
             {
@@ -87,7 +87,7 @@ namespace GaStore.Controllers
 
         [Authorize(Roles = CustomRoles.Admin)]
         [HttpPut]
-        public async Task<ActionResult<ServiceResponse<ProductSubTypeDto>>> UpdateProductSubType([FromBody] CreateProductSubTypeDto productSubTypeDto)
+        public async Task<ActionResult<ServiceResponse<ProductSubTypeDto>>> UpdateProductSubType([FromForm] CreateProductSubTypeDto productSubTypeDto)
         {
             if (!ModelState.IsValid)
             {

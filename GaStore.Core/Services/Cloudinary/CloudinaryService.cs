@@ -9,19 +9,30 @@ namespace GaStore.Core.Services.Cloudinary
 
     public class CloudinaryService : ICloudinaryService
     {
-        private readonly CloudinaryDotNet.Cloudinary _cloudinary;
+        private readonly CloudinaryDotNet.Cloudinary? _cloudinary;
         private readonly ILogger<CloudinaryService> _logger;
+        private readonly bool _isConfigured;
 
         public CloudinaryService(IConfiguration configuration, ILogger<CloudinaryService> logger)
         {
             _logger = logger;
 
-            var account = new Account(
-                configuration["Cloudinary:CloudName"],
-                configuration["Cloudinary:ApiKey"],
-                configuration["Cloudinary:ApiSecret"]
-            );
+            var cloudName = configuration["Cloudinary:CloudName"];
+            var apiKey = configuration["Cloudinary:ApiKey"];
+            var apiSecret = configuration["Cloudinary:ApiSecret"];
 
+            _isConfigured =
+                !string.IsNullOrWhiteSpace(cloudName) &&
+                !string.IsNullOrWhiteSpace(apiKey) &&
+                !string.IsNullOrWhiteSpace(apiSecret);
+
+            if (!_isConfigured)
+            {
+                _logger.LogInformation("Cloudinary is disabled or not configured. Uploads will use non-Cloudinary storage.");
+                return;
+            }
+
+            var account = new Account(cloudName, apiKey, apiSecret);
             _cloudinary = new CloudinaryDotNet.Cloudinary(account);
         }
 
@@ -31,6 +42,11 @@ namespace GaStore.Core.Services.Cloudinary
 
             try
             {
+                if (!EnsureConfigured(result))
+                {
+                    return result;
+                }
+
                 // Validate file
                 if (file == null || file.Length == 0)
                 {
@@ -61,16 +77,17 @@ namespace GaStore.Core.Services.Cloudinary
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
+                var storedFileName = GenerateStoredFileName(file.FileName);
 
                 var uploadParams = new ImageUploadParams
                 {
-                    File = new FileDescription(file.FileName, memoryStream),
+                    File = new FileDescription(storedFileName, memoryStream),
                     Transformation = new Transformation()
                         .Quality("auto:good") // Better quality auto setting
                         .FetchFormat("auto"), // Auto choose best format
                     Folder = "uploads/images",
-                    UseFilename = true,
-                    UniqueFilename = true,
+                    UseFilename = false,
+                    UniqueFilename = false,
                     Overwrite = false
                 };
 
@@ -110,6 +127,11 @@ namespace GaStore.Core.Services.Cloudinary
 
             try
             {
+                if (!EnsureConfigured(result))
+                {
+                    return result;
+                }
+
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
                     result.IsSuccess = false;
@@ -175,6 +197,11 @@ namespace GaStore.Core.Services.Cloudinary
 
             try
             {
+                if (!EnsureConfigured(result))
+                {
+                    return result;
+                }
+
                 if (file == null || file.Length == 0)
                 {
                     result.IsSuccess = false;
@@ -193,13 +220,14 @@ namespace GaStore.Core.Services.Cloudinary
                 using var memoryStream = new MemoryStream();
                 await file.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
+                var storedFileName = GenerateStoredFileName(file.FileName);
 
                 var uploadParams = new RawUploadParams
                 {
-                    File = new FileDescription(file.FileName, memoryStream),
+                    File = new FileDescription(storedFileName, memoryStream),
                     Folder = "uploads/files",
-                    UseFilename = true,
-                    UniqueFilename = true,
+                    UseFilename = false,
+                    UniqueFilename = false,
                     Overwrite = false
                 };
 
@@ -237,6 +265,11 @@ namespace GaStore.Core.Services.Cloudinary
 
             try
             {
+                if (!EnsureConfigured(result))
+                {
+                    return result;
+                }
+
                 if (fileStream == null || fileStream.Length == 0)
                 {
                     result.IsSuccess = false;
@@ -291,16 +324,24 @@ namespace GaStore.Core.Services.Cloudinary
 
             return result;
         }
-        public async Task<bool> DeleteFileAsync(string publicId)
+        public async Task<bool> DeleteFileAsync(string publicId, string resourceType = "image")
         {
             try
             {
+                if (!_isConfigured || _cloudinary == null)
+                {
+                    _logger.LogInformation("Cloudinary delete skipped because Cloudinary is disabled or not configured.");
+                    return false;
+                }
+
                 if (string.IsNullOrEmpty(publicId))
                     return false;
 
                 var deleteParams = new DeletionParams(publicId)
                 {
-                    ResourceType = ResourceType.Image
+                    ResourceType = resourceType.Equals("raw", StringComparison.OrdinalIgnoreCase)
+                        ? ResourceType.Raw
+                        : ResourceType.Image
                 };
 
                 var result = await _cloudinary.DestroyAsync(deleteParams);
@@ -311,6 +352,24 @@ namespace GaStore.Core.Services.Cloudinary
                 _logger.LogError(ex, "Error deleting file from Cloudinary: {PublicId}", publicId);
                 return false;
             }
+        }
+
+        private bool EnsureConfigured(CloudinaryUploadResult result)
+        {
+            if (_isConfigured && _cloudinary != null)
+            {
+                return true;
+            }
+
+            result.IsSuccess = false;
+            result.ErrorMessage = "Cloudinary is disabled.";
+            return false;
+        }
+
+        private static string GenerateStoredFileName(string originalFileName)
+        {
+            var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+            return $"{Guid.NewGuid():N}{extension}";
         }
     }
 }

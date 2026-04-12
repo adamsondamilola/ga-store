@@ -252,7 +252,7 @@ export default function StoreNavBar() {
             <img
               src={getWebsiteLogo(websiteContent)}
               alt={websiteContent.siteName || 'App Logo'}
-              className="h-auto w-32"
+              className="w-24 md:h-auto md:w-32"
               width={128}
               height={64}
             />
@@ -303,10 +303,7 @@ export default function StoreNavBar() {
                 >
                   <div className="max-h-[560px] w-[270px] overflow-y-auto border-r border-[#f3dfd0] bg-white/80">
                     <div className="border-b border-[#f7e7db] px-5 py-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#c26b2f]">
-                        Shop By Department
-                      </p>
-                      <h3 className="mt-1 text-base font-semibold text-[#3b2416]">
+                       <h3 className="mt-1 text-base font-semibold text-[#3b2416]">
                         All Categories
                       </h3>
                     </div>
@@ -352,10 +349,7 @@ export default function StoreNavBar() {
                       <div className="rounded-[26px] border border-[#f8ddc6] bg-white/90 p-5 shadow-[0_16px_50px_rgba(120,68,20,0.08)]">
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#cb6c2e]">
-                              Explore Collection
-                            </p>
-                            <Link
+                             <Link
                               href={generateCategoryUrl(hoveredCategory)}
                               className="group/title mt-2 inline-flex items-center gap-2 text-[28px] font-bold leading-tight text-[#25160f] transition-colors hover:text-[#b45309]"
                             >
@@ -366,11 +360,11 @@ export default function StoreNavBar() {
                               Discover standout picks, browse curated subcategories, and jump straight into the sections shoppers use most.
                             </p>
                           </div>
-                          <div className="hidden items-center gap-2 rounded-full bg-[#fff3e6] px-3 py-2 text-xs font-medium text-[#9a4f19] md:flex">
+                          {/*<div className="hidden items-center gap-2 rounded-full bg-[#fff3e6] px-3 py-2 text-xs font-medium text-[#9a4f19] md:flex">
                             <span>{categoryMeta?.subCategories || 0} subcategories</span>
                             <span className="h-1 w-1 rounded-full bg-[#e2a36d]" />
                             <span>{categoryMeta?.productTypes || 0} product types</span>
-                          </div>
+                          </div>*/}
                         </div>
 
                         <div className="mt-5 grid grid-cols-5 gap-4">

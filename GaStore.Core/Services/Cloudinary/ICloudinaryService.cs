@@ -10,9 +10,9 @@ namespace GaStore.Core.Services.Cloudinary
     public interface ICloudinaryService
     {
         Task<CloudinaryUploadResult> UploadImageAsync(IFormFile file);
-        Task<CloudinaryUploadResult> UploadImageAsync(Stream fileStream, string fileName); // Add this
+        Task<CloudinaryUploadResult> UploadImageAsync(Stream fileStream, string fileName); 
         Task<CloudinaryUploadResult> UploadImageAsync(byte[] fileBytes, string fileName);
         Task<CloudinaryUploadResult> UploadFileAsync(IFormFile file);
-        Task<bool> DeleteFileAsync(string publicId);
+        Task<bool> DeleteFileAsync(string publicId, string resourceType = "image");
     }
 }

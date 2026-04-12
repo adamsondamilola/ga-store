@@ -37,7 +37,7 @@ const ProductTypes = () => {
   };
 
   const handleEdit = async (category) => {
-    try {        
+    try {
       const response = await requestHandler.get(`${endpointsPath.productType}/${category.id}`, true);
       if (response.statusCode === 200) {
         setFormData({ ...response.result.data, id: category.id });
@@ -52,11 +52,11 @@ const ProductTypes = () => {
     if (!window.confirm('Delete this category?')) return;
     try {
       const response = await requestHandler.deleteReq(`${endpointsPath.productType}/${id}`, true);
-      if(response.statusCode === 200){
-        toast.success(response.result.message)
+      if (response.statusCode === 200) {
+        toast.success(response.result.message);
         fetchProductTypes();
-    }else {
-        toast.error(response.result.message)
+      } else {
+        toast.error(response.result.message);
       }
     } catch (err) {
       console.error('Delete failed:', err);
@@ -65,40 +65,53 @@ const ProductTypes = () => {
 
   const handleSave = async (data) => {
     try {
-      if (data.id) {
-        const response = await requestHandler.put(`${endpointsPath.productType}`, data, true);
-        if(response.statusCode === 200){
-            toast.success(response.result.message)
-        }else{
-            toast.error(response.result.message)
-        }
-      } else {
-        const response = await requestHandler.post(endpointsPath.productType, data, true);
-        if(response.statusCode === 200){
-            toast.success(response.result.message)
-        }else{
-            toast.error(response.result.message)
-        }
+      const formDataToSend = new FormData();
+      formDataToSend.append('subCategoryId', data.subCategoryId);
+      formDataToSend.append('name', data.name);
+      formDataToSend.append('isActive', data.isActive);
+
+      if (data.imageUrl) {
+        formDataToSend.append('imageUrl', data.imageUrl);
       }
+
+      if (data.imageFile) {
+        formDataToSend.append('imageFile', data.imageFile);
+      }
+
+      if (data.id) {
+        formDataToSend.append('id', data.id);
+      }
+
+      const response = data.id
+        ? await requestHandler.putForm(`${endpointsPath.productType}`, formDataToSend, true)
+        : await requestHandler.postForm(endpointsPath.productType, formDataToSend, true);
+
+      if (response.statusCode === 200 || response.statusCode === 201) {
+        toast.success(response.result.message);
+      } else {
+        toast.error(response.result.message);
+      }
+
       setFormModalOpen(false);
       fetchProductTypes();
     } catch (err) {
       console.error('Save failed:', err);
+      toast.error('Something went wrong while saving.');
     }
   };
 
   useEffect(() => {
     fetchProductTypes();
-  }, [searchTerm, page]);
+  }, [searchTerm, page, pageSize]);
 
   return (
     <div className="p-4">
-        <PageTitleComponent title='Product Types'/>
-      <div className="flex justify-between mb-4">
+      <PageTitleComponent title="Product Types" />
+      <div className="mb-4 flex justify-between">
         <input
           type="text"
           placeholder="Search product types..."
-          className="border px-2 py-1 rounded"
+          className="rounded border px-2 py-1"
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
@@ -110,7 +123,7 @@ const ProductTypes = () => {
             setFormData(null);
             setFormModalOpen(true);
           }}
-          className={ClassStyle.button} 
+          className={ClassStyle.button}
         >
           + New Product Type
         </button>
@@ -131,13 +144,13 @@ const ProductTypes = () => {
         onPageSizeChange={setPageSize}
       />
 
-      {formModalOpen && (
+      {formModalOpen ? (
         <ProductTypeFormModal
           formData={formData}
           onClose={() => setFormModalOpen(false)}
           onSave={handleSave}
         />
-      )}
+      ) : null}
     </div>
   );
 };

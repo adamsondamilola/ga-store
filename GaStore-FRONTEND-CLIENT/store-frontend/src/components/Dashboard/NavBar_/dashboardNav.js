@@ -68,7 +68,7 @@ export function DashboardNavBarComponent() {
       </Navbar.Collapse>*/}
 
 <Drawer open={isOpen} onClose={handleClose}>
-        <Drawer.Header title={<img src={AppImages.logo} width={'100'}/>} titleIcon={() => <></>} />
+        <Drawer.Header title={<img src={AppImages.logo} height={'100'}/>} titleIcon={() => <></>} />
         <Drawer.Items>
           <AsideComponent/>
         </Drawer.Items>

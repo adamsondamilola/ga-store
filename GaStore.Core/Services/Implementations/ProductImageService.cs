@@ -1,24 +1,13 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
-using GaStore.Core.Services.Cloudinary;
 using GaStore.Core.Services.Interfaces;
 using GaStore.Data.Dtos.ProductsDto;
 using GaStore.Data.Entities.Products;
-using GaStore.Data.Models;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Models.Database;
 using GaStore.Shared;
 using GaStore.Shared.Constants;
-using SixLabors.ImageSharp.Formats.Gif;
-using GaStore.Data.Enums;
-using GaStore.Data.Dtos.ImageUploads;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -28,29 +17,20 @@ namespace GaStore.Core.Services.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<ProductImageService> _logger;
-        private readonly AppSettings _appSettings;
-        private readonly ICloudinaryService _cloudinaryService;
-
-
-        // Image optimization settings
-        private readonly ImageOptimizationSettings _imageSettings;
+        private readonly IImageUploadService _imageUploadService;
 
         public ProductImageService(
             DatabaseContext context,
             IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<ProductImageService> logger,
-            IOptions<AppSettings> appSettings,
-            ICloudinaryService cloudinaryService,
-            IOptions<ImageOptimizationSettings> imageSettings = null)
+            IImageUploadService imageUploadService)
         {
             _context = context;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
-            _appSettings = appSettings.Value;
-            _cloudinaryService = cloudinaryService;
-            _imageSettings = imageSettings?.Value ?? new ImageOptimizationSettings();
+            _imageUploadService = imageUploadService;
         }
 
         public async Task<PaginatedServiceResponse<List<ProductImageDto>>> GetProductImagesAsync(Guid variantId, int pageNumber, int pageSize)
@@ -189,6 +169,11 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
+                if (!string.IsNullOrWhiteSpace(productImage.ImageUrl))
+                {
+                    await SafeDeleteImageAsync(productImage.ImageUrl);
+                }
+
                 // Delete the product image
                 await _unitOfWork.ProductImageRepository.Remove(productImage.Id);
                 await _unitOfWork.CompletedAsync(userId);
@@ -222,6 +207,11 @@ namespace GaStore.Core.Services.Implementations
                     response.StatusCode = 404;
                     response.Message = "Product image not found.";
                     return response;
+                }
+
+                if (!string.IsNullOrWhiteSpace(productImage.ImageUrl))
+                {
+                    await SafeDeleteImageAsync(productImage.ImageUrl);
                 }
 
                 // Delete the product image
@@ -258,10 +248,7 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                // Process images based on storage type
-                var savedProductImageDtos = _appSettings.UseCloudinary
-                    ? await ProcessImagesWithCloudinaryAsync(productImageDto)
-                    : await ProcessImagesLocallyAsync(productImageDto);
+                var savedProductImageDtos = await ProcessUploadedImagesAsync(productImageDto);
 
                 // Process external image URLs if provided
                 if (productImageDto.ImageUrls?.Any() == true)
@@ -312,7 +299,7 @@ namespace GaStore.Core.Services.Implementations
         private async Task<string> ValidateImageFilesAsync(IEnumerable<IFormFile> imageFiles)
         {
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" };
-            var maxFileSize = _imageSettings.MaxOriginalFileSize; // Use configurable setting
+            var maxFileSize = 10 * 1024 * 1024;
 
             foreach (var imageFile in imageFiles)
             {
@@ -385,309 +372,28 @@ namespace GaStore.Core.Services.Implementations
             return false;
         }
 
-        private async Task<List<ProductImageDto>> ProcessImagesWithCloudinaryAsync(ProductImageDto productImageDto)
+        private async Task<List<ProductImageDto>> ProcessUploadedImagesAsync(ProductImageDto productImageDto)
         {
             var savedProductImageDtos = new List<ProductImageDto>();
 
-            foreach (var imageFile in productImageDto.imageFiles)
+            foreach (var imageFile in productImageDto.imageFiles ?? [])
             {
-                CloudinaryUploadResult uploadResult;
+                var upload = await _imageUploadService.UploadAndOptimizeImageAsync(
+                    imageFile,
+                    Path.Combine("wwwroot", "images", "product-images"));
 
-                // Optimize image before uploading if enabled
-                if (_imageSettings.OptimizeBeforeUpload && _imageSettings.EnableOptimization)
+                if (!upload.IsSuccess || string.IsNullOrWhiteSpace(upload.ImageUrl))
                 {
-                    try
-                    {
-                        var optimizedImage = await OptimizeImageFileAsync(imageFile);
-
-                        if (optimizedImage is OptimizedFormFile)
-                        {
-                            // Use the optimized image
-                            uploadResult = await _cloudinaryService.UploadImageAsync(optimizedImage);
-                        }
-                        else
-                        {
-                            // Fallback to regular upload
-                            uploadResult = await _cloudinaryService.UploadImageAsync(imageFile);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to optimize image, uploading original: {FileName}", imageFile.FileName);
-                        uploadResult = await _cloudinaryService.UploadImageAsync(imageFile);
-                    }
-                }
-                else
-                {
-                    // Upload without optimization
-                    uploadResult = await _cloudinaryService.UploadImageAsync(imageFile);
+                    throw new InvalidOperationException($"Error uploading file {imageFile.FileName}: {upload.ErrorMessage}");
                 }
 
-                if (!uploadResult.IsSuccess)
-                {
-                    throw new InvalidOperationException($"Error uploading file {imageFile.FileName}: {uploadResult.ErrorMessage}");
-                }
-
-                var savedProductImageDto = CreateProductImageDto(productImageDto, uploadResult.Url);
+                var savedProductImageDto = CreateProductImageDto(productImageDto, upload.ImageUrl);
                 savedProductImageDtos.Add(savedProductImageDto);
             }
 
             return savedProductImageDtos;
         }
 
-        private async Task<List<ProductImageDto>> ProcessImagesLocallyAsync(ProductImageDto productImageDto)
-        {
-            var savedProductImageDtos = new List<ProductImageDto>();
-
-            foreach (var imageFile in productImageDto.imageFiles)
-            {
-                var optimizedImage = await OptimizeImageFileAsync(imageFile);
-                var savedProductImageDto = await SaveOptimizedImageLocallyAsync(productImageDto, optimizedImage);
-                savedProductImageDtos.Add(savedProductImageDto);
-            }
-
-            return savedProductImageDtos;
-        }
-
-        private async Task<ProductImageDto> SaveOptimizedImageLocallyAsync(ProductImageDto productImageDto, IFormFile optimizedImage)
-        {
-            var uploadsFolder = Path.Combine("wwwroot", "images", "product-images");
-
-            // Ensure the uploads folder exists
-            Directory.CreateDirectory(uploadsFolder);
-
-            // Generate optimized file name
-            var originalExtension = Path.GetExtension(optimizedImage.FileName).ToLowerInvariant();
-            var optimizedExtension = _imageSettings.PreferredFormat == ImageFormat.Auto
-                ? originalExtension
-                : $".{_imageSettings.PreferredFormat.ToString().ToLower()}";
-
-            var fileName = $"{Guid.NewGuid()}{optimizedExtension}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            // Save the optimized file
-            await using var stream = new FileStream(filePath, FileMode.Create);
-            await optimizedImage.CopyToAsync(stream);
-
-            var imageUrl = $"{_appSettings.ApiRoot}/images/product-images/{fileName}";
-            return CreateProductImageDto(productImageDto, imageUrl);
-        }
-
-        private async Task<IFormFile> OptimizeImageFileAsync(IFormFile imageFile)
-        {
-            // Skip optimization if disabled
-            if (!_imageSettings.EnableOptimization)
-                return imageFile;
-
-            try
-            {
-                await using var inputStream = imageFile.OpenReadStream();
-
-                // Determine output format
-                var outputFormat = DetermineOutputFormat(imageFile);
-
-                using var image = await Image.LoadAsync(inputStream);
-
-                // Resize if needed
-                if (ShouldResizeImage(image))
-                {
-                    image.Mutate(x => x.Resize(new ResizeOptions
-                    {
-                        Size = CalculateTargetSize(image),
-                        Mode = ResizeMode.Max,
-                        Compand = true
-                    }));
-                }
-
-                // Create output memory stream
-                var outputStream = new MemoryStream();
-
-                // Encode with optimization settings
-                await EncodeImageWithOptimizationAsync(image, outputStream, outputFormat);
-
-                outputStream.Position = 0;
-
-                // Get the optimized bytes
-                var optimizedBytes = outputStream.ToArray();
-
-                // Dispose the stream
-                await outputStream.DisposeAsync();
-
-                // Create optimized IFormFile
-                var optimizedFileName = Path.GetFileNameWithoutExtension(imageFile.FileName) +
-                                      GetExtensionForFormat(outputFormat);
-
-                return new OptimizedFormFile(
-                    optimizedBytes,
-                    optimizedFileName,
-                    GetContentTypeForFormat(outputFormat), // Use the correct content type method
-                    optimizedBytes.Length
-                );
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to optimize image {FileName}, using original", imageFile.FileName);
-                return imageFile; // Fallback to original
-            }
-        }
-
-        // Helper method to get proper MIME types
-        private string GetContentTypeForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => "image/jpeg",
-                ImageFormat.Png => "image/png",
-                ImageFormat.WebP => "image/webp",
-                ImageFormat.Gif => "image/gif",
-                _ => "image/jpeg"
-            };
-        }
-
-        private string GetExtensionForFormat(ImageFormat format)
-        {
-            return format switch
-            {
-                ImageFormat.Jpeg => ".jpg",
-                ImageFormat.Png => ".png",
-                ImageFormat.WebP => ".webp",
-                ImageFormat.Gif => ".gif",
-                _ => ".jpg"
-            };
-        }
-
-        private ImageFormat DetermineOutputFormat(IFormFile imageFile)
-        {
-            // Use preferred format from settings
-            if (_imageSettings.PreferredFormat != ImageFormat.Auto)
-                return _imageSettings.PreferredFormat;
-
-            // Auto-detect based on requirements
-            var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
-
-            return extension switch
-            {
-                ".png" => _imageSettings.PreserveTransparency ? ImageFormat.Png : ImageFormat.WebP,
-                ".gif" => ImageFormat.Gif, // Preserve animation
-                _ => ImageFormat.WebP // Default to WebP for best compression
-            };
-        }
-
-        private bool ShouldResizeImage(Image image)
-        {
-            return image.Width > _imageSettings.MaxWidth ||
-                   image.Height > _imageSettings.MaxHeight ||
-                   _imageSettings.ForceResizeToMaxDimensions;
-        }
-
-        private Size CalculateTargetSize(Image image)
-        {
-            var maxWidth = _imageSettings.MaxWidth;
-            var maxHeight = _imageSettings.MaxHeight;
-
-            // Calculate while maintaining aspect ratio
-            var ratioX = (double)maxWidth / image.Width;
-            var ratioY = (double)maxHeight / image.Height;
-            var ratio = Math.Min(ratioX, ratioY);
-
-            return new Size(
-                (int)(image.Width * ratio),
-                (int)(image.Height * ratio)
-            );
-        }
-
-        private async Task EncodeImageWithOptimizationAsync(Image image, Stream outputStream, ImageFormat format)
-        {
-            switch (format)
-            {
-                case ImageFormat.Jpeg:
-                    var jpegEncoder = new JpegEncoder
-                    {
-                        Quality = _imageSettings.JpegQuality,
-                        // Remove ColorType property entirely
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsJpegAsync(outputStream, jpegEncoder);
-                    break;
-
-                case ImageFormat.Png:
-                    var pngEncoder = new PngEncoder
-                    {
-                        CompressionLevel = _imageSettings.PngCompressionLevel,
-                        // Remove ColorType property
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsPngAsync(outputStream, pngEncoder);
-                    break;
-
-                case ImageFormat.WebP:
-                    var webpEncoder = new WebpEncoder
-                    {
-                        Quality = _imageSettings.WebpQuality,
-                        Method = WebpEncodingMethod.Default,
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsWebpAsync(outputStream, webpEncoder);
-                    break;
-
-                case ImageFormat.Gif:
-                    var gifEncoder = new GifEncoder
-                    {
-                        SkipMetadata = _imageSettings.StripMetadata
-                    };
-                    await image.SaveAsGifAsync(outputStream, gifEncoder);
-                    break;
-
-                default:
-                    // Fallback to original format
-                    await image.SaveAsync(outputStream, image.Metadata.DecodedImageFormat);
-                    break;
-            }
-        }
-
-        private class OptimizedFormFile : IFormFile
-        {
-            private readonly byte[] _fileData;
-            private readonly string _fileName;
-            private readonly string _contentType;
-            private readonly long _length;
-
-            public OptimizedFormFile(byte[] fileData, string fileName, string contentType, long length)
-            {
-                _fileData = fileData ?? throw new ArgumentNullException(nameof(fileData));
-                _fileName = fileName ?? "optimized-image.jpg";
-                _contentType = contentType ?? "application/octet-stream";
-                _length = length;
-            }
-
-            public string ContentType => _contentType;
-            public string ContentDisposition => $"form-data; name=\"file\"; filename=\"{_fileName}\"";
-            public IHeaderDictionary Headers => new HeaderDictionary();
-            public long Length => _length;
-            public string Name => "file";
-            public string FileName => _fileName;
-
-            public void CopyTo(Stream target)
-            {
-                if (target == null)
-                    throw new ArgumentNullException(nameof(target));
-
-                target.Write(_fileData, 0, _fileData.Length);
-            }
-
-            public async Task CopyToAsync(Stream target, CancellationToken cancellationToken = default)
-            {
-                if (target == null)
-                    throw new ArgumentNullException(nameof(target));
-
-                await target.WriteAsync(_fileData, cancellationToken);
-            }
-
-            public Stream OpenReadStream()
-            {
-                return new MemoryStream(_fileData, false); // false = non-writable stream
-            }
-        }
         private async Task<List<ProductImageDto>> ProcessExternalImageUrlsAsync(ProductImageDto productImageDto)
         {
             var externalImageDtos = new List<ProductImageDto>();
@@ -757,6 +463,18 @@ namespace GaStore.Core.Services.Implementations
             }
 
             await _unitOfWork.CompletedAsync(userId);
+        }
+
+        private async Task SafeDeleteImageAsync(string imageUrl)
+        {
+            try
+            {
+                await _imageUploadService.DeleteImageAsync(imageUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Unable to delete product image asset {ImageUrl}", imageUrl);
+            }
         }
 
         // Helper class for validation results
