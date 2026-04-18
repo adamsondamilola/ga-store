@@ -20,6 +20,12 @@ const reviewTone = {
   Approved: "bg-emerald-50 text-emerald-700",
   Rejected: "bg-rose-50 text-rose-700",
 };
+const productConditionOptions = [
+  { value: 0, label: "Not Applicable" },
+  { value: 1, label: "New" },
+  { value: 2, label: "Used" },
+  { value: 3, label: "Refurbished" },
+];
 
 const emptyVariant = () => ({
   id: "",
@@ -61,6 +67,34 @@ const normalizeImages = (images = []) =>
     typeof image === "string" ? { imageUrl: image } : { ...image, imageUrl: image.imageUrl || image.url || "" }
   );
 
+const normalizeYouTubeId = (value = "") => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return "";
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    const host = parsedUrl.hostname.toLowerCase();
+
+    if (host.includes("youtu.be")) {
+      return parsedUrl.pathname.split("/").filter(Boolean)[0] || trimmedValue;
+    }
+
+    if (host.includes("youtube.com")) {
+      const watchId = parsedUrl.searchParams.get("v");
+      if (watchId) return watchId;
+
+      const segments = parsedUrl.pathname.split("/").filter(Boolean);
+      if (segments.length >= 2 && ["embed", "shorts"].includes(segments[0])) {
+        return segments[1];
+      }
+    }
+  } catch {
+    return trimmedValue;
+  }
+
+  return trimmedValue;
+};
+
 const normalizeProductPayload = (product) => ({
   id: product.id || "",
   reviewStatus: product.reviewStatus || "Draft",
@@ -73,8 +107,10 @@ const normalizeProductPayload = (product) => ({
     highlights: product.highlights || "",
     weight: product.weight || "",
     primaryColor: product.primaryColor || "",
+    condition: product.condition ?? 0,
     stockQuantity: product.stockQuantity || 0,
     isAvailable: product.isAvailable ?? true,
+    isAvailableOnRequest: product.isAvailableOnRequest ?? false,
     brandId: product.brandId || "",
     categoryId: product.category?.id || product.categoryId || "",
     subCategoryId: product.subCategory?.id || product.subCategoryId || "",
@@ -133,8 +169,10 @@ export default function ProductForm({ mode = "create", productId = null }) {
       highlights: "",
       weight: "",
       primaryColor: "",
+      condition: 0,
       stockQuantity: 0,
       isAvailable: true,
+      isAvailableOnRequest: false,
       brandId: "",
       categoryId: "",
       subCategoryId: "",
@@ -433,8 +471,10 @@ export default function ProductForm({ mode = "create", productId = null }) {
     formData.append("Highlights", info.highlights || "");
     formData.append("Weight", info.weight || "");
     formData.append("PrimaryColor", info.primaryColor || "");
+    formData.append("Condition", String(info.condition ?? 0));
     formData.append("StockQuantity", String(info.stockQuantity || 0));
     formData.append("IsAvailable", String(info.isAvailable ?? true));
+    formData.append("IsAvailableOnRequest", String(info.isAvailableOnRequest ?? false));
     formData.append("BrandId", info.brandId || "");
     formData.append("BrandName", info.brandId ? "" : brandQuery.trim());
     formData.append("CategoryId", info.categoryId || "");
@@ -485,7 +525,7 @@ export default function ProductForm({ mode = "create", productId = null }) {
     formData.append("SpecificationsDto.ProductLine", spec.productLine || "");
     formData.append("SpecificationsDto.WarrantyDuration", spec.warrantyDuration || "");
     formData.append("SpecificationsDto.WarrantyType", spec.warrantyType || "");
-    formData.append("SpecificationsDto.YouTubeId", spec.youTubeId || "");
+    formData.append("SpecificationsDto.YouTubeId", normalizeYouTubeId(spec.youTubeId || ""));
     formData.append("SpecificationsDto.Nafdac", spec.nafdac || "");
     formData.append("SpecificationsDto.Fda", spec.fda || "");
     formData.append("SpecificationsDto.Disclaimer", spec.disclaimer || "");
@@ -623,7 +663,9 @@ export default function ProductForm({ mode = "create", productId = null }) {
               <label className="space-y-2 md:col-span-2"><span className="text-sm font-medium text-slate-700">Description</span><textarea value={productState.productInfo.description} onChange={(event) => setProductInfo({ description: event.target.value })} className={textAreaClass} /></label>
               <label className="space-y-2 md:col-span-2"><span className="text-sm font-medium text-slate-700">Highlights</span><textarea value={productState.productInfo.highlights} onChange={(event) => setProductInfo({ highlights: event.target.value })} className={textAreaClass} /></label>
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Primary color</span><input value={productState.productInfo.primaryColor} onChange={(event) => setProductInfo({ primaryColor: event.target.value })} list="vendor-product-colors" className={inputClass} /><datalist id="vendor-product-colors">{productColors.map((color) => <option key={color} value={color} />)}</datalist></label>
+              <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Condition</span><select value={String(productState.productInfo.condition ?? 0)} onChange={(event) => setProductInfo({ condition: Number(event.target.value) })} className={inputClass}>{productConditionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Available for sale</span><select value={String(productState.productInfo.isAvailable)} onChange={(event) => setProductInfo({ isAvailable: event.target.value === "true" })} className={inputClass}><option value="true">Yes</option><option value="false">No</option></select></label>
+              <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Available on request</span><select value={String(productState.productInfo.isAvailableOnRequest ?? false)} onChange={(event) => setProductInfo({ isAvailableOnRequest: event.target.value === "true" })} className={inputClass}><option value="false">No</option><option value="true">Yes</option></select></label>
             </div>
             <div className="mt-6">
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Tags</span><input value={tagQuery} onChange={(event) => setTagQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && tagQuery.trim()) { event.preventDefault(); addTag(tagQuery); } }} list="vendor-product-tags" className={inputClass} placeholder="Search tags or type a custom one" /><datalist id="vendor-product-tags">{filteredTags.map((tag) => <option key={tag.id} value={tag.name} />)}</datalist></label>

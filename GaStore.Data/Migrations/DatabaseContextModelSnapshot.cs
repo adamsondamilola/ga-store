@@ -721,6 +721,11 @@ namespace GaStore.Data.Migrations
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Condition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTime?>("DateApproved")
                         .HasColumnType("timestamp with time zone");
 
@@ -740,6 +745,9 @@ namespace GaStore.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsAvailableOnRequest")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPublished")

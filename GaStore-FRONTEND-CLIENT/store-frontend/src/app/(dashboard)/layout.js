@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Account | GaStore",
-  description: "Account | GaStore",
+  title: "Account | Retina",
+  description: "Account | Retina",
 };
 
 export default function RootLayoutDashboard({ children }) {

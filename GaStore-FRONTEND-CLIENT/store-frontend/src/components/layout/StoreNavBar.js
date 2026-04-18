@@ -248,14 +248,14 @@ export default function StoreNavBar() {
           <button className="text-white lg:hidden" onClick={() => setMobileMenuOpen(true)}>
             <FiMenu className="text-2xl" />
           </button>
-          <Link href="/" className="cursor-pointer text-2xl font-bold">
+          <Link href="/" className="flex flex-1 items-center gap-2 cursor-pointer text-2xl font-bold">
             <img
               src={getWebsiteLogo(websiteContent)}
               alt={websiteContent.siteName || 'App Logo'}
-              className="w-24 md:h-auto md:w-32"
-              width={128}
-              height={64}
-            />
+              className="w-8 md:h-auto md:w-16"
+              width={32}
+              height={32}
+            /><span className="ml-0 md:hidden text-lg font-semibold">{websiteContent.siteName}</span>
           </Link>
 
           <div className="relative hidden lg:block">

@@ -466,6 +466,11 @@ namespace GaStore.Models.Database
                 .HasDefaultValue(ProductReviewStatus.Draft);
 
             modelBuilder.Entity<Product>()
+                .Property(p => p.Condition)
+                .HasConversion<int>()
+                .HasDefaultValue(ProductCondition.NotApplicable);
+
+            modelBuilder.Entity<Product>()
                 .HasOne(p => p.Vendor)
                 .WithMany(u => u.VendorProducts)
                 .HasForeignKey(p => p.VendorId)

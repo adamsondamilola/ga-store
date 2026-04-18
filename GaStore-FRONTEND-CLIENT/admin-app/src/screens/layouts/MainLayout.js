@@ -5,8 +5,8 @@ import Footer from '../../components/landing/Footer';
 const MainLayout = () => {
 
   const metadata = {
-    title: 'GaStore - Admin',
-    description: 'GaStore online store for different types of products',
+    title: 'Retina - Admin',
+    description: 'Retina online store for different types of products',
   }
 
   return (

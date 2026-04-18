@@ -258,7 +258,7 @@ export default function PremiumLandingPage() {
                 </span>
                 <p className="mt-4 text-3xl font-black leading-tight">{limitedOffer.title}</p>
                 <p className="mt-4 text-sm leading-7 text-white/85">
-                  {limitedOffer.subtitle || "Shop the active promotion curated by the GaStore team before the timer runs out."}
+                  {limitedOffer.subtitle || "Shop the active promotion curated by the Retina team before the timer runs out."}
                 </p>
                 <p className="mt-4 text-sm text-white/70">Offer ends {new Date(limitedOffer.endDate).toLocaleString()}</p>
               </div>

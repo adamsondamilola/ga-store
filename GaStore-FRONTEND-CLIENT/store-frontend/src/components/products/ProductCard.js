@@ -764,7 +764,7 @@ export default function ProductCard({ product, viewAll = true, featured = false,
                                 <button
                                   key={index}
                                   onClick={() => updateSelectedTier(variant.variantId, tier)}
-                                  className={`w-36 flex-shrink-0 rounded-2xl border p-2.5 text-left transition-all ${
+                                  className={`w-38 flex-shrink-0 rounded-2xl border p-2.5 text-left transition-all ${
                                     isSelected
                                       ? 'border-gray-900 bg-white shadow-sm'
                                       : 'border-gray-200 bg-white hover:border-gray-400'

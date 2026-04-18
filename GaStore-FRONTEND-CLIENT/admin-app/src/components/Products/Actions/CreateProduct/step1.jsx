@@ -9,6 +9,12 @@ import { v4 as uuidv4 } from 'uuid';
 const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
   const MAX_IMAGES = 10;
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+  const conditionOptions = [
+    { value: 0, label: "Not Applicable" },
+    { value: 1, label: "New" },
+    { value: 2, label: "Used" },
+    { value: 3, label: "Refurbished" },
+  ];
 
   const [form, setForm] = useState({
     id: uuidv4(),
@@ -17,8 +23,10 @@ const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
     highlights: '',
     weight: '',
     primaryColor: '',
+    condition: 0,
     stockQuantity: 0,
     isAvailable: true,
+    isAvailableOnRequest: false,
     brandId: '',
     categoryId: '',
     subCategoryId: '',
@@ -172,6 +180,9 @@ const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
     }
     else if (name === 'productSubTypeId') {
       setForm(prev => ({ ...prev, [name]: value }));
+    }
+    else if (name === 'condition') {
+      setForm(prev => ({ ...prev, [name]: Number(value) }));
     }
     else {
       setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -369,6 +380,20 @@ const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
           )}
         </div>
 
+        <div>
+          <label className="block text-sm font-medium">Condition</label>
+          <select
+            name="condition"
+            value={form.condition}
+            onChange={handleInputChange}
+            className={ClassStyle.input}
+          >
+            {conditionOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Primary Color */}
         {/* <div className="relative" ref={colorDropdownRef}>
           <label className="block text-sm font-medium">Primary Color</label>
@@ -562,6 +587,18 @@ const StepOneProductInfo = ({ onNext, onChange, data, tags, categories }) => {
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label htmlFor="isAvailable" className="text-sm">Available for Sale</label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="isAvailableOnRequest"
+          name="isAvailableOnRequest"
+          checked={form.isAvailableOnRequest}
+          onChange={handleInputChange}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor="isAvailableOnRequest" className="text-sm">Available on Request</label>
       </div>
 
       {/* Image Upload */}

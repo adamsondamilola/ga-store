@@ -250,7 +250,7 @@ export default function NavigationButtons() {
         </div>
 
         {/* Help Dropdown */}
-        <div className="relative" ref={dropdownRefs.help}>
+        {/*<div className="relative" ref={dropdownRefs.help}>
           <DropdownButton name="help" icon={FiHelpCircle} label="Help" />
           <DropdownMenu 
             name="help"
@@ -259,7 +259,7 @@ export default function NavigationButtons() {
               { href: "/faq", label: "FAQs" }
             ]}
           />
-        </div>
+        </div>*/}
 
         {/* Cart Icon */}
         <div className="relative">

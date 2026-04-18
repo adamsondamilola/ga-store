@@ -24,9 +24,11 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public string? Weight { get; set; }
 
 		public string? PrimaryColor { get; set; }
+        public ProductCondition Condition { get; set; } = ProductCondition.NotApplicable;
 
 		public int StockQuantity { get; set; }
         public bool IsAvailable { get; set; }
+        public bool IsAvailableOnRequest { get; set; } = false;
         public bool IsApproved { get; set; } = false;
         public bool IsPublished { get; set; } = false;
         public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;
@@ -73,9 +75,11 @@ namespace GaStore.Data.Dtos.ProductsDto
 		public string? Weight { get; set; }
 
 		public string? PrimaryColor { get; set; }
+        public ProductCondition Condition { get; set; } = ProductCondition.NotApplicable;
 
 		public int StockQuantity { get; set; }
 		public bool IsAvailable { get; set; }
+        public bool IsAvailableOnRequest { get; set; } = false;
         public bool IsApproved { get; set; } = false;
         public bool IsPublished { get; set; } = false;
         public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;

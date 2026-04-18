@@ -6,7 +6,7 @@ import endpointsPath from "../../constants/EndpointsPath";
 const emptyFaq = { question: "", answer: "" };
 
 const initialForm = {
-  siteName: "GaStore",
+  siteName: "Retina",
   siteDescription: "",
   footerDescription: "",
   logoUrl: "",

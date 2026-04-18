@@ -71,15 +71,23 @@ namespace GaStore.Core.Services.Implementations
                     return response;
                 }
 
-                if (!user.IsVendor)
+                var existingKyc = await _context.VendorKycs.FirstOrDefaultAsync(x => x.UserId == userId);
+                if (existingKyc == null)
                 {
-                    user.IsVendor = true;
-                    await EnsureVendorRoleAsync(userId);
+                    existingKyc = new VendorKyc
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        Status = KycStatus.NotStarted
+                    };
+                    await _unitOfWork.VendorKycRepository.Add(existingKyc);
                     await _unitOfWork.CompletedAsync(userId);
                 }
 
                 response.StatusCode = 200;
-                response.Message = "Vendor account activated successfully.";
+                response.Message = user.IsVendor
+                    ? "Vendor account is already active."
+                    : "Vendor request started. Complete and submit your KYC for admin approval.";
                 response.Data = await BuildStatusDtoAsync(user.Id);
             }
             catch (Exception ex)
@@ -104,12 +112,6 @@ namespace GaStore.Core.Services.Implementations
                     response.StatusCode = 404;
                     response.Message = "User not found.";
                     return response;
-                }
-
-                if (!user.IsVendor)
-                {
-                    user.IsVendor = true;
-                    await EnsureVendorRoleAsync(userId);
                 }
 
                 var kyc = await _context.VendorKycs
@@ -340,8 +342,10 @@ namespace GaStore.Core.Services.Implementations
                 kyc.ReviewedAt = DateTime.UtcNow;
                 kyc.ReviewedByAdminId = adminId;
                 kyc.RejectionReason = approve ? null : string.IsNullOrWhiteSpace(reason) ? "KYC submission was rejected." : reason.Trim();
+                kyc.User.IsVendor = approve;
                 kyc.User.KycStatus = kyc.Status;
                 kyc.User.CanPost = approve;
+                await SyncVendorRoleAsync(kyc.User.Id, approve);
 
                 await _unitOfWork.CompletedAsync(adminId);
 
@@ -377,6 +381,26 @@ namespace GaStore.Core.Services.Implementations
                     Description = "Marketplace vendor"
                 });
             }
+        }
+
+        private async Task RemoveVendorRoleAsync(Guid userId)
+        {
+            var existingRole = await _unitOfWork.RoleRepository.Get(x => x.UserId == userId && x.Name == CustomRoles.Vendor);
+            if (existingRole != null)
+            {
+                _context.Roles.Remove(existingRole);
+            }
+        }
+
+        private async Task SyncVendorRoleAsync(Guid userId, bool shouldHaveVendorRole)
+        {
+            if (shouldHaveVendorRole)
+            {
+                await EnsureVendorRoleAsync(userId);
+                return;
+            }
+
+            await RemoveVendorRoleAsync(userId);
         }
 
         private async Task<VendorKycStatusDto?> BuildStatusDtoAsync(Guid userId)

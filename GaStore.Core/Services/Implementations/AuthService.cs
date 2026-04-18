@@ -114,18 +114,6 @@ namespace GaStore.Core.Services.Implementations
                             }
                         };
 
-                        if (users.IsVendor)
-                        {
-                            model.IsVendor = true;
-                            roleDtos.Add(new RoleDto
-                            {
-                                UserId = model.Id,
-                                Name = "Vendor",
-                                Description = "Marketplace vendor",
-                                UsersDto = new List<UserDto> { users }
-                            });
-                        }
-
                         foreach (var roleDto in roleDtos)
                         {
                             var roleModel = _mapper.Map<RoleDto, Role>(roleDto);

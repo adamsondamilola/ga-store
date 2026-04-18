@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "GaStore",
-  description: "GaStore",
+  title: "Retina",
+  description: "Retina",
 };
 
 const inter = Inter({ subsets: ["latin"] });

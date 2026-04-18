@@ -16,6 +16,34 @@ const steps = [
   { id: 3, title: 'Specification' }
 ];
 
+const normalizeYouTubeId = (value = '') => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return '';
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    const host = parsedUrl.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      return parsedUrl.pathname.split('/').filter(Boolean)[0] || trimmedValue;
+    }
+
+    if (host.includes('youtube.com')) {
+      const watchId = parsedUrl.searchParams.get('v');
+      if (watchId) return watchId;
+
+      const segments = parsedUrl.pathname.split('/').filter(Boolean);
+      if (segments.length >= 2 && ['embed', 'shorts'].includes(segments[0])) {
+        return segments[1];
+      }
+    }
+  } catch {
+    return trimmedValue;
+  }
+
+  return trimmedValue;
+};
+
 const CreateProduct = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [productData, setProductData] = useState({
@@ -26,8 +54,10 @@ const CreateProduct = () => {
       highlights: '',
       weight: '',
       primaryColor: '',
+      condition: 0,
       stockQuantity: 0,
       isAvailable: true,
+      isAvailableOnRequest: false,
       brandId: '',
       categoryId: '',
       subCategoryId: '',
@@ -146,9 +176,11 @@ const CreateProduct = () => {
     formData.append('Description', pd.description);
     formData.append('Highlights', pd.highlights);
     formData.append('PrimaryColor', pd.primaryColor);
+    formData.append('Condition', pd.condition ?? 0);
     formData.append('Weight', pd.weight);
     formData.append('StockQuantity', pd.stockQuantity);
     formData.append('IsAvailable', pd.isAvailable);
+    formData.append('IsAvailableOnRequest', pd.isAvailableOnRequest);
     formData.append('BrandId', pd.brandId);
     formData.append('CategoryId', pd.categoryId);
     formData.append('SubCategoryId', pd.subCategoryId);
@@ -217,7 +249,7 @@ const CreateProduct = () => {
       formData.append('SpecificationsDto.Size', spec.size || '');
       formData.append('SpecificationsDto.WarrantyDuration', spec.warrantyDuration || '');
       formData.append('SpecificationsDto.WarrantyType', spec.warrantyType || '');
-      formData.append('SpecificationsDto.YouTubeId', spec.youTubeId || '');
+      formData.append('SpecificationsDto.YouTubeId', normalizeYouTubeId(spec.youTubeId || ''));
       formData.append('SpecificationsDto.Nafdac', spec.nafdac || '');
       formData.append('SpecificationsDto.Fda', spec.fda || '');
       formData.append('SpecificationsDto.FdaApproved', spec.fdaApproved ? 'true' : 'false');

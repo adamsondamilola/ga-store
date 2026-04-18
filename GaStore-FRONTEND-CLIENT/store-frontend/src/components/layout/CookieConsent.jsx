@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const COOKIE_CONSENT_KEY = "towg-cookie-consent";
+const COOKIE_CONSENT_KEY = "retina-cookie-consent";
 
 export default function CookieConsent() {
   const [isMounted, setIsMounted] = useState(false);

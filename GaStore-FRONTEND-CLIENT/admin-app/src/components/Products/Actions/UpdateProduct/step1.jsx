@@ -11,6 +11,12 @@ const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpdate = false, tags, existingTags = [], productId, categories }) => {
+  const conditionOptions = [
+    { value: 0, label: "Not Applicable" },
+    { value: 1, label: "New" },
+    { value: 2, label: "Used" },
+    { value: 3, label: "Refurbished" },
+  ];
   const [form, setForm] = useState({
     id: uuidv4(),
     name: '',
@@ -18,8 +24,10 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
     highlights: '',
     weight: '',
     primaryColor: '',
+    condition: 0,
     stockQuantity: 0,
     isAvailable: true,
+    isAvailableOnRequest: false,
     brandId: '',
     categoryId: '',
     subCategoryId: '',
@@ -226,6 +234,17 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
       
       onChange({ 
         ...updatedForm, 
+        images: newImages,
+        existingImages: existingImages.filter(img => !imagesToDelete.includes(img.id)),
+        imagesToDelete
+      });
+    }
+    else if (name === 'condition') {
+      const updatedForm = { ...form, [name]: Number(updatedValue) };
+      setForm(updatedForm);
+
+      onChange({
+        ...updatedForm,
         images: newImages,
         existingImages: existingImages.filter(img => !imagesToDelete.includes(img.id)),
         imagesToDelete
@@ -597,6 +616,20 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
             <p className="text-xs text-gray-500 mt-1">Select a product type first</p>
           )}
         </div>
+
+        <div>
+          <label className="block text-sm font-medium">Condition</label>
+          <select
+            name="condition"
+            value={form.condition}
+            onChange={handleInputChange}
+            className={ClassStyle.input}
+          >
+            {conditionOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Description */}
@@ -729,6 +762,18 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label htmlFor="isAvailable" className="text-sm">Available for Sale</label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="isAvailableOnRequest"
+          name="isAvailableOnRequest"
+          checked={form.isAvailableOnRequest}
+          onChange={handleInputChange}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor="isAvailableOnRequest" className="text-sm">Available on Request</label>
       </div>
 
       {/* Image Upload */}

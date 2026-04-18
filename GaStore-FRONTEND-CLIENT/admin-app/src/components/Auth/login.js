@@ -108,7 +108,7 @@ const LoginComponent = (props) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 shadow-lg shadow-slate-900/15">
-                  <img src={AppImages.logo} alt="GaStore logo" className="h-8 w-auto" />
+                  <img src={AppImages.logo} alt="Retina logo" className="h-8 w-auto" />
                 </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Admin access</p>

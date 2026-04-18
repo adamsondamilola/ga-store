@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiBox,
   FiChevronRight,
@@ -22,6 +22,8 @@ import {
   FiUsers,
   FiLock,
 } from "react-icons/fi";
+import endpointsPath from "@/constants/EndpointsPath";
+import requestHandler from "@/utils/requestHandler";
 
 const primaryItems = [
   { href: "/customer", label: "Dashboard", icon: FiGrid },
@@ -96,11 +98,37 @@ const NavLink = ({ item, pathname }) => {
 const AsideComponent = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const response = await requestHandler.get(`${endpointsPath.auth}/logged-in-user-details`, true);
+        if (response.statusCode === 200) {
+          setUser(response.result?.data || null);
+        }
+      } catch (error) {
+        console.error("dashboard sidebar user fetch failed", error);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  const visiblePrimaryItems = useMemo(
+    () =>
+      primaryItems.filter((item) => {
+        const vendorOnlyRoute =
+          item.href === "/customer/vendor/earnings" || item.href === "/customer/vendor/products";
+        return vendorOnlyRoute ? Boolean(user?.isVendor) : true;
+      }),
+    [user]
+  );
 
   const activeLabel = useMemo(() => {
-    const allItems = [...primaryItems, ...secondaryItems];
+    const allItems = [...visiblePrimaryItems, ...secondaryItems];
     return allItems.find((item) => matchPath(pathname, item.href))?.label || "Dashboard";
-  }, [pathname]);
+  }, [pathname, visiblePrimaryItems]);
 
   const logOut = () => {
     localStorage.removeItem("token");
@@ -127,7 +155,7 @@ const AsideComponent = () => {
             Main Menu
           </p>
           <div className="mt-3 space-y-1.5">
-            {primaryItems.map((item) => (
+            {visiblePrimaryItems.map((item) => (
               <NavLink key={item.href} item={item} pathname={pathname} />
             ))}
           </div>

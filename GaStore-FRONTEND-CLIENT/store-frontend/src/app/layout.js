@@ -5,7 +5,7 @@ import { WebsiteContentProvider } from "@/components/providers/WebsiteContentPro
 
 export async function generateMetadata() {
   const websiteContent = await getWebsiteContent();
-  const siteName = websiteContent.siteName || "GaStore";
+  const siteName = websiteContent.siteName || "Retina";
   const description = websiteContent.siteDescription;
 
   return {
@@ -14,7 +14,7 @@ export async function generateMetadata() {
       template: `%s | ${siteName}`,
     },
     description,
-    keywords: ["GaStore", "online store", "ecommerce", "shopping", "everyday products", "lifestyle products", "Nigeria online store", "general merchandise"],
+    keywords: ["Retina", "online store", "ecommerce", "shopping", "everyday products", "lifestyle products", "Nigeria online store", "general merchandise"],
     viewport: {
       width: "device-width",
       initialScale: 1,
@@ -22,7 +22,7 @@ export async function generateMetadata() {
       minimumScale: 1,
       viewportFit: "cover",
     },
-    authors: [{ name: siteName, url: "https://www.towg.com.ng" }],
+    authors: [{ name: siteName, url: "https://www.retina.ng" }],
     creator: siteName,
     publisher: `${siteName} Enterprises`,
     icons: {
@@ -44,13 +44,13 @@ export async function generateMetadata() {
     openGraph: {
       type: "website",
       locale: "en_NG",
-      url: "https://www.towg.com.ng",
+      url: "https://www.retina.ng",
       siteName,
       title: `${siteName} - Online Store for Different Types of Products`,
       description,
       images: [
         {
-          url: "https://www.towg.com.ng/images/og-image.png",
+          url: "https://www.retina.ng/images/og-image.png",
           width: 1200,
           height: 630,
           alt: `${siteName} online store products`,
@@ -63,7 +63,7 @@ export async function generateMetadata() {
       card: "summary_large_image",
       title: `${siteName} - Online Store for Different Types of Products`,
       description,
-      images: ["https://www.towg.com.ng/images/og-image.png"],
+      images: ["https://www.retina.ng/images/og-image.png"],
       creator: `@${siteName}`,
       site: `@${siteName}`,
     },
@@ -103,7 +103,7 @@ export async function generateMetadata() {
     copyright: `${siteName}. All rights reserved.`,
     generator: "Next.js",
     applicationName: siteName,
-    metadataBase: new URL("https://www.towg.com.ng"),
+    metadataBase: new URL("https://www.retina.ng"),
   };
 }
 

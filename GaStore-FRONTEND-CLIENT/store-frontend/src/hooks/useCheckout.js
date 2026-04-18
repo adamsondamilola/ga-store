@@ -865,7 +865,7 @@ const initializePaystackPayment = usePaystackPayment({
       state: selectedAddress?.state || pickupAddressState,
       city: shippingCity || pickupAddressCity,
       customerAddress: selectedAddress?.address || '',
-      shippingProvider: shippingProvider || 'GaStore',
+      shippingProvider: shippingProvider || 'Retina',
       customerPhone:
         selectedAddress?.phoneNumber || pickupAddressPhone,
       fullName: selectedAddress?.fullName || user?.name,

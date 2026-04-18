@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Account | GaStore",
-  description: "Account | GaStore",
+  title: "Account | Retina",
+  description: "Account | Retina",
 };
 
 export default async function RootLayout({ children }) {
@@ -40,7 +40,7 @@ export default async function RootLayout({ children }) {
                 <div className="w-full max-w-md">
                   <div className="justify-center flex mb-4">
                     <img 
-  src={'/images/logo-alt.png'}
+  src={'/images/logo.png'}
   alt={websiteContent.siteName}
   className="w-32 h-auto"
   width={128}

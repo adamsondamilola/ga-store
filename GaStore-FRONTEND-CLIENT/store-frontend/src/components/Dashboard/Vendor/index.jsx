@@ -191,18 +191,19 @@ export default function VendorDashboard() {
   const StatusIcon = kycMeta.icon;
   const canEditKyc = !status?.kycStatus || status.kycStatus === "NotStarted" || status.kycStatus === "Rejected";
   const canSubmitKyc = status?.kycStatus === "NotStarted" || status?.kycStatus === "Rejected";
+  const canStartVendorRequest = !status?.isVendor && status?.kycStatus === "NotStarted" && !status?.kyc;
 
   const activateVendor = async () => {
     setSaving(true);
     try {
       const response = await requestHandler.post(`${endpointsPath.vendor}/account/become-vendor`, {}, true);
       if (response.statusCode === 200) {
-        toast.success("Vendor account activated");
+        toast.success(response.result?.message || "Vendor request started");
         await fetchVendorData();
         return;
       }
 
-      toast.error(response.result?.message || "Unable to activate vendor account");
+      toast.error(response.result?.message || "Unable to start vendor request");
     } finally {
       setSaving(false);
     }
@@ -332,14 +333,14 @@ export default function VendorDashboard() {
       description="Complete KYC, monitor moderation status, and unlock product posting when approval is in place."
       actions={
         <>
-          {!status?.isVendor ? (
+          {canStartVendorRequest ? (
             <button
               type="button"
               onClick={activateVendor}
               disabled={saving}
               className="rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-60"
             >
-              Become Vendor
+              Start Vendor Request
             </button>
           ) : null}
           <Link

@@ -8,6 +8,7 @@ using GaStore.Shared;
 using AutoMapper;
 using GaStore.Infrastructure.Repository.UnitOfWork;
 using GaStore.Models.Database;
+using System.Collections.Specialized;
 
 namespace GaStore.Core.Services.Implementations
 {
@@ -142,6 +143,9 @@ namespace GaStore.Core.Services.Implementations
 					return response;
 				}
 
+				var normalizedYouTubeId = NormalizeYouTubeId(productSpecificationDto.YouTubeId);
+				productSpecificationDto.YouTubeId = normalizedYouTubeId;
+
 				var productSpecification = _mapper.Map<ProductSpecificationDto, ProductSpecification>(productSpecificationDto);
 
 				//if product exists
@@ -159,7 +163,7 @@ namespace GaStore.Core.Services.Implementations
 					spec.Size = productSpecificationDto.Size;
 					spec.WarrantyDuration = productSpecificationDto.WarrantyDuration;
 					spec.WarrantyType = productSpecificationDto.WarrantyType;
-					spec.YouTubeId = productSpecificationDto.YouTubeId;
+					spec.YouTubeId = normalizedYouTubeId;
                     spec.Nafdac = productSpecificationDto.Nafdac;
                     spec.Fda = productSpecificationDto.Fda;
                     spec.FdaApproved = productSpecificationDto.FdaApproved;
@@ -212,6 +216,9 @@ namespace GaStore.Core.Services.Implementations
 					return response;
 				}
 
+				var normalizedYouTubeId = NormalizeYouTubeId(productSpecificationDto.YouTubeId);
+				productSpecificationDto.YouTubeId = normalizedYouTubeId;
+
 				// Find the product specification by ID
 				var productSpecification = await _unitOfWork.ProductSpecificationRepository.GetById(id);
 
@@ -235,7 +242,7 @@ namespace GaStore.Core.Services.Implementations
 				productSpecification.Size = productSpecificationDto.Size;
 				productSpecification.WarrantyDuration = productSpecificationDto.WarrantyDuration;
 				productSpecification.WarrantyType = productSpecificationDto.WarrantyType;
-				productSpecification.YouTubeId = productSpecificationDto.YouTubeId;
+				productSpecification.YouTubeId = normalizedYouTubeId;
                 productSpecification.Nafdac = productSpecificationDto.Nafdac;
                 productSpecification.Fda = productSpecificationDto.Fda;
                 productSpecification.FdaApproved = productSpecificationDto.FdaApproved;
@@ -294,6 +301,67 @@ namespace GaStore.Core.Services.Implementations
 			}
 
 			return response;
+		}
+
+		private static string? NormalizeYouTubeId(string? value)
+		{
+			if (string.IsNullOrWhiteSpace(value))
+			{
+				return null;
+			}
+
+			var trimmedValue = value.Trim();
+
+			if (!Uri.TryCreate(trimmedValue, UriKind.Absolute, out var uri))
+			{
+				return trimmedValue;
+			}
+
+			var host = uri.Host.ToLowerInvariant();
+			if (!host.Contains("youtube.com") && !host.Contains("youtu.be"))
+			{
+				return trimmedValue;
+			}
+
+			if (host.Contains("youtu.be"))
+			{
+				var shortPathId = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+				return string.IsNullOrWhiteSpace(shortPathId) ? trimmedValue : shortPathId;
+			}
+
+			var query = ParseQueryString(uri.Query);
+			if (!string.IsNullOrWhiteSpace(query["v"]))
+			{
+				return query["v"];
+			}
+
+			var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+			if (segments.Length >= 2 && (segments[0].Equals("embed", StringComparison.OrdinalIgnoreCase) || segments[0].Equals("shorts", StringComparison.OrdinalIgnoreCase)))
+			{
+				return segments[1];
+			}
+
+			return trimmedValue;
+		}
+
+		private static NameValueCollection ParseQueryString(string query)
+		{
+			var values = new NameValueCollection();
+			if (string.IsNullOrWhiteSpace(query))
+			{
+				return values;
+			}
+
+			var trimmedQuery = query.TrimStart('?');
+			foreach (var pair in trimmedQuery.Split('&', StringSplitOptions.RemoveEmptyEntries))
+			{
+				var parts = pair.Split('=', 2);
+				var key = Uri.UnescapeDataString(parts[0]);
+				var val = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty;
+				values[key] = val;
+			}
+
+			return values;
 		}
 	}
 
