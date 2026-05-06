@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import requestHandler from "../../utils/requestHandler";
 import endpointsPath from "../../constants/EndpointsPath";
 import formatNumberToCurrency from "../../utils/numberToMoney";
+import PageHeader from "../PageHeader";
 
 const MarketplacePayouts = () => {
   const [queue, setQueue] = useState([]);
@@ -70,12 +71,11 @@ const MarketplacePayouts = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Weekend Vendor Payouts</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Review ready vendor earnings, confirm payout readiness, and trigger automated transfers via Paystack or Flutterwave.
-            </p>
-          </div>
+          <PageHeader
+  title={"Weekend Vendor Payouts"}
+  subtitle="Review ready vendor earnings, confirm payout readiness, and trigger automated transfers via Paystack or Flutterwave."
+  rightContent={null}
+/>
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={gateway}

@@ -13,6 +13,7 @@ import DashboardOverviewComponent from "./overview";
 import RecentOrdersComponent from "./recentOrders";
 import requestHandler from "../../utils/requestHandler";
 import endpointsPath from "../../constants/EndpointsPath";
+import PageHeader from "../../components/PageHeader";
 
 export default function DashboardComponent() {
   const [stats, setStats] = useState({
@@ -86,85 +87,83 @@ export default function DashboardComponent() {
     [stats]
   );
 
-  return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-[32px] border border-[#f0dacc] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(255,245,236,0.95)_42%,_rgba(255,232,214,0.92)_100%)] p-6 shadow-[0_20px_70px_rgba(240,108,35,0.10)] md:p-7">
-        <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-[#fb923c]/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-[#fdba74]/20 blur-3xl" />
+return (
+  <div className="space-y-8">
+    <section className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm md:p-8">
+      <PageHeader
+  title="Store Operations"
+  subtitle="Monitor products, orders, pending shipping, and registered users from one clean dashboard."
+  rightContent={
+    <button
+      onClick={() => fetchStats(true)}
+      className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-bold text-white hover:bg-black"
+    >
+      <RefreshCw size={16} />
+      Refresh
+    </button>
+  }
+/>
 
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#c2410c]">
-              Admin Dashboard
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-gray-950 md:text-[2.4rem]">
-              Store operations at a glance
-            </h1>
-            <p className="mt-2 text-sm text-gray-600 md:text-base">
-              Review catalog health, order volume, shipping workload, and account growth from one
-              place.
-            </p>
+      <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {heroHighlights.map((item) => {
+          const Icon = item.icon;
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                to="/orders"
-                className="inline-flex items-center gap-2 rounded-full bg-gray-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-black"
-              >
-                Review orders
-                <ArrowRight size={16} />
-              </Link>
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                Manage catalog
-              </Link>
-            </div>
-          </div>
+          return (
+            <div
+              key={item.label}
+              className="rounded-2xl border border-gray-100 bg-gray-50 p-5 transition hover:-translate-y-1 hover:bg-white hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-500">
+                    {item.label}
+                  </p>
 
-          <button
-            type="button"
-            onClick={() => fetchStats(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-          >
-            <RefreshCw className={refreshing ? "animate-spin" : ""} size={16} />
-            Refresh
-          </button>
-        </div>
-
-        <div className="relative z-10 mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {heroHighlights.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.label}
-                className="rounded-[26px] border border-white/60 bg-white/80 p-5 shadow-sm backdrop-blur"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-600">{item.label}</div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4ec] text-[#ea580c]">
-                    <Icon size={18} />
-                  </div>
+                  <h2 className="mt-4 text-3xl font-black tracking-tight text-gray-950">
+                    {loading ? "..." : item.value.toLocaleString()}
+                  </h2>
                 </div>
-                <div className="mt-5 text-[1.9rem] font-semibold tracking-tight text-gray-950">
-                  {loading ? "..." : item.value}
+
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-orange-100 text-orange-600">
+                  <Icon size={22} />
                 </div>
-                <div className="mt-1 text-sm text-gray-500">Live operational count</div>
               </div>
-            );
-          })}
-        </div>
-      </section>
 
-      <DashboardOverviewComponent
-        totalProducts={stats.totalProducts}
-        totalOrders={stats.totalOrders}
-        registeredUsers={stats.registeredUsers}
-        pendingShipping={stats.pendingShipping}
-        loading={loading}
-      />
+              <p className="mt-4 text-xs font-medium text-gray-400">
+                Live operational count
+              </p>
+            </div>
+          );
+        })}
+      </div>
 
-      <RecentOrdersComponent />
-    </div>
-  );
+      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+        <Link
+          to="/orders"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-orange-700"
+        >
+          Review orders
+          <ArrowRight size={16} />
+        </Link>
+
+        <Link
+          to="/products"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+        >
+          Manage catalog
+        </Link>
+      </div>
+    </section>
+
+    <DashboardOverviewComponent
+      totalProducts={stats.totalProducts}
+      totalOrders={stats.totalOrders}
+      registeredUsers={stats.registeredUsers}
+      pendingShipping={stats.pendingShipping}
+      loading={loading}
+    />
+
+    <RecentOrdersComponent />
+  </div>
+);
 }

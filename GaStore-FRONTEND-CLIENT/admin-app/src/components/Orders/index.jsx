@@ -18,6 +18,7 @@ import Pagination from '../Pagination';
 import OrderList from './OrderList';
 import requestHandler from '../../utils/requestHandler';
 import endpointsPath from '../../constants/EndpointsPath';
+import PageHeader from '../PageHeader';
 
 const panelClassName =
   'rounded-[30px] border border-[#ece4db] bg-white/90 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] md:p-6';
@@ -328,29 +329,20 @@ const Orders = () => {
         <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-[#fb923c]/20 blur-3xl" />
         <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-[#fdba74]/20 blur-3xl" />
 
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#c2410c]">
-              Order Management
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-gray-950 md:text-[2.4rem]">
-              Monitor and fulfill customer orders
-            </h1>
-            <p className="mt-2 text-sm text-gray-600 md:text-base">
-              Search orders, narrow fulfillment queues, and manage shipping status from one clean
-              workspace.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => fetchOrders(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-          >
-            <RefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
-            Refresh
-          </button>
-        </div>
+    <PageHeader
+  title="Monitor and fulfill customer orders"
+  subtitle="Search orders, narrow fulfillment queues, and manage shipping status from one clean
+              workspace."
+  rightContent={
+    <button
+      onClick={() => fetchOrders(true)}
+      className="inline-flex items-center gap-2 rounded-xl bg-gray-950 px-5 py-3 text-sm font-bold text-white hover:bg-black"
+    >
+      <RefreshCw size={16} />
+      Refresh
+    </button>
+  }
+/>
 
         {(couponCode || userId) && (
           <div className="relative z-10 mt-5 inline-flex flex-wrap items-center gap-2 rounded-full bg-white/75 px-4 py-2 text-sm font-medium text-[#9a4f19]">
@@ -378,11 +370,8 @@ const Orders = () => {
 
       <section className={panelClassName}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
-              Filters
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-gray-950">Find the right order fast</h2>
+          <div className='text-start'>
+             <h2 className="mt-2 text-2xl font-semibold text-gray-950">Find the right order fast</h2>
             <p className="mt-2 text-sm text-gray-600">
               Filter by customer, date, shipping route, or fulfillment stage to focus on the work
               in front of you.
@@ -648,10 +637,7 @@ const Orders = () => {
 
       <section className={panelClassName}>
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
-              Orders Table
-            </p>
+          <div className='text-start'>
             <h2 className="mt-2 text-2xl font-semibold text-gray-950">Recent and filtered orders</h2>
             <p className="mt-2 text-sm text-gray-600">
               Open order details, bulk-update fulfillment status, and print receipts from here.

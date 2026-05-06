@@ -228,9 +228,6 @@ export default function CustomerDashboardHome() {
 
         <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#c2410c]">
-              Customer Dashboard
-            </p>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950 md:text-[2.5rem]">
               Welcome back, {firstName}
             </h1>

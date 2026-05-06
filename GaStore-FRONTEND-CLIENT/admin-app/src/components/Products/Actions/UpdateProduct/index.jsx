@@ -133,6 +133,8 @@ const UpdateProduct = () => {
               stockQuantity: product.stockQuantity,
               isAvailable: product.isAvailable,
               isAvailableOnRequest: product.isAvailableOnRequest ?? false,
+              payOnDelivery: product.payOnDelivery ?? false,
+              estDeliveryDays: product.estDeliveryDays ?? 0,
               brandId: product.brandId,
               categoryId: product.category.id,
               subCategoryId: product.subCategory.id,
@@ -237,6 +239,8 @@ const handleDataUpdate = (key, data) => {
     formData.append('StockQuantity', pd.stockQuantity);
     formData.append('IsAvailable', pd.isAvailable);
     formData.append('IsAvailableOnRequest', pd.isAvailableOnRequest);
+    formData.append('PayOnDelivery', pd.payOnDelivery ?? false);
+    formData.append('EstDeliveryDays', pd.estDeliveryDays ?? 0);
     formData.append('BrandId', pd.brandId);
     formData.append('CategoryId', pd.categoryId);
     formData.append('SubCategoryId', pd.subCategoryId);

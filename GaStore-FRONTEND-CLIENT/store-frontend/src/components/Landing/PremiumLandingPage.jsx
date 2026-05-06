@@ -59,9 +59,9 @@ export default function PremiumLandingPage() {
       try {
         const [sliderResponse, categoryResponse, featuredResponse, arrivalsResponse, limitedOfferResponse] = await Promise.all([
           requestHandler.get(`${endpointsPath.banner}?pageNumber=1&pageSize=1&type=Slider`),
-          requestHandler.get(`${endpointsPath.category}/active?pageNumber=1&pageSize=30`),
-          requestHandler.get(`${endpointsPath.featuredProduct}?pageNumber=1&pageSize=8`),
-          requestHandler.get(`${endpointsPath.product}?pageNumber=1&pageSize=8`),
+          requestHandler.get(`${endpointsPath.category}/active?pageNumber=1&pageSize=50`),
+          requestHandler.get(`${endpointsPath.featuredProduct}?pageNumber=1&pageSize=10`),
+          requestHandler.get(`${endpointsPath.product}?pageNumber=1&pageSize=10`),
           requestHandler.get(`${endpointsPath.limitedOffer}/active-homepage`),
         ]);
 
@@ -215,7 +215,7 @@ export default function PremiumLandingPage() {
           actionLabel="See more"
           actionHref="/product/featured"
         />
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
           {featuredProducts.map((item) => (
             <StoreProductCard key={item?.product?.id || item?.id} product={item} featured />
           ))}
@@ -229,7 +229,7 @@ export default function PremiumLandingPage() {
           actionLabel="See more"
           actionHref="/product"
         />
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
           {arrivals.map((item) => (
             <StoreProductCard key={item.id} product={item} />
           ))}

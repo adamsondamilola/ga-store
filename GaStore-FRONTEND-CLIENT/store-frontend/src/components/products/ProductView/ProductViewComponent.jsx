@@ -252,6 +252,16 @@ export default function ProductViewComponent({ productData, productReviews }) {
                 <FiTruck className="text-xs" />
                 Fast delivery
               </span>
+              {productData?.isAvailableOnRequest && (
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-blue-700">
+                  Available on request
+                </span>
+              )}
+              {productData?.payOnDelivery && (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-700">
+                  Pay on delivery
+                </span>
+              )}
               {discount > 0 && (
                 <span className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-gray-600">
                   Save {discount}%

@@ -38,15 +38,9 @@ export default function RecentOrdersComponent() {
   return (
     <section className="rounded-[30px] border border-[#ece4db] bg-white/90 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] md:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
-            Recent Activity
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-gray-950">Latest orders</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Monitor the newest transactions and jump into fulfillment when needed.
-          </p>
-        </div>
+        <div className="text-start">
+           <h2 className="mt-2 text-2xl font-semibold text-gray-950">Latest orders</h2>
+         </div>
 
         <Link
           to="/orders"

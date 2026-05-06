@@ -421,7 +421,7 @@ export default function ProductCard({ product, viewAll = true, featured = false,
   const activeImage = getSafeImageSrc(selectedVariant?.images?.[0]?.imageUrl || priceVariants[0]?.images?.[0]?.imageUrl || productData?.images?.[0]?.imageUrl);
   const quickMeta = selectedVariant?.weight ? `${(parseFloat(selectedVariant.weight) / 1000).toFixed(1)}kg` : null;
   const optionLabel = hasMultipleOptions ? `${priceVariants.length} option${priceVariants.length > 1 ? 's' : ''}` : null;
-  const primaryTag = discount > 0 ? `${discount}% OFF` : (hasMultipleOptions ? 'Multi option' : 'In stock');
+  const primaryTag = hasMultipleOptions ? 'Multi option' : 'In stock';
   const secondaryMeta = totalStock > 0 ? `${totalStock} available` : 'Out of stock';
 
   return (
@@ -531,6 +531,16 @@ export default function ProductCard({ product, viewAll = true, featured = false,
             {quickMeta && (
               <span className="rounded-full bg-gray-100 px-2 py-1 font-medium text-gray-600">
                 {quickMeta}
+              </span>
+            )}
+            {productData?.isAvailableOnRequest && (
+              <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700">
+                Available on request
+              </span>
+            )}
+            {productData?.payOnDelivery && (
+              <span className="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">
+                Pay on delivery
               </span>
             )}
           </div>

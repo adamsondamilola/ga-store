@@ -28,6 +28,9 @@ namespace GaStore.Data.Entities.Products
 		public int StockQuantity { get; set; }
         public bool IsAvailable { get; set; }
         public bool IsAvailableOnRequest { get; set; } = false;
+        public bool PayOnDelivery { get; set; } = false;
+        public int EstDeliveryDays { get; set; } = 0;
+        public bool AvailableOnRequest { get; set; } = false;
 		public bool IsApproved { get; set; } = false;
         public bool IsPublished { get; set; } = false;
         public ProductReviewStatus ReviewStatus { get; set; } = ProductReviewStatus.Draft;

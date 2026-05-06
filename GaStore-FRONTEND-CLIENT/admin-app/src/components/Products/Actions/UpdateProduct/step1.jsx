@@ -28,6 +28,8 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
     stockQuantity: 0,
     isAvailable: true,
     isAvailableOnRequest: false,
+    payOnDelivery: false,
+    estDeliveryDays: 0,
     brandId: '',
     categoryId: '',
     subCategoryId: '',
@@ -774,6 +776,14 @@ const StepOneProductInfo = ({ onNext, onChange, data, existingImages = [], isUpd
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label htmlFor="isAvailableOnRequest" className="text-sm">Available on Request</label>
+      </div>
+      <div className="flex items-center gap-2">
+        <input type="checkbox" id="payOnDelivery" name="payOnDelivery" checked={form.payOnDelivery} onChange={handleInputChange} className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+        <label htmlFor="payOnDelivery" className="text-sm">Pay on Delivery</label>
+      </div>
+      <div>
+        <label className="block text-sm font-medium">Estimated Delivery Days</label>
+        <input type="number" name="estDeliveryDays" min="0" value={form.estDeliveryDays} onChange={handleInputChange} className={ClassStyle.input} placeholder="0" />
       </div>
 
       {/* Image Upload */}

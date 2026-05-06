@@ -111,6 +111,8 @@ const normalizeProductPayload = (product) => ({
     stockQuantity: product.stockQuantity || 0,
     isAvailable: product.isAvailable ?? true,
     isAvailableOnRequest: product.isAvailableOnRequest ?? false,
+    payOnDelivery: product.payOnDelivery ?? false,
+    estDeliveryDays: product.estDeliveryDays ?? 0,
     brandId: product.brandId || "",
     categoryId: product.category?.id || product.categoryId || "",
     subCategoryId: product.subCategory?.id || product.subCategoryId || "",
@@ -173,6 +175,8 @@ export default function ProductForm({ mode = "create", productId = null }) {
       stockQuantity: 0,
       isAvailable: true,
       isAvailableOnRequest: false,
+      payOnDelivery: false,
+      estDeliveryDays: 0,
       brandId: "",
       categoryId: "",
       subCategoryId: "",
@@ -475,6 +479,8 @@ export default function ProductForm({ mode = "create", productId = null }) {
     formData.append("StockQuantity", String(info.stockQuantity || 0));
     formData.append("IsAvailable", String(info.isAvailable ?? true));
     formData.append("IsAvailableOnRequest", String(info.isAvailableOnRequest ?? false));
+    formData.append("PayOnDelivery", String(info.payOnDelivery ?? false));
+    formData.append("EstDeliveryDays", String(info.estDeliveryDays ?? 0));
     formData.append("BrandId", info.brandId || "");
     formData.append("BrandName", info.brandId ? "" : brandQuery.trim());
     formData.append("CategoryId", info.categoryId || "");
@@ -666,6 +672,8 @@ export default function ProductForm({ mode = "create", productId = null }) {
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Condition</span><select value={String(productState.productInfo.condition ?? 0)} onChange={(event) => setProductInfo({ condition: Number(event.target.value) })} className={inputClass}>{productConditionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Available for sale</span><select value={String(productState.productInfo.isAvailable)} onChange={(event) => setProductInfo({ isAvailable: event.target.value === "true" })} className={inputClass}><option value="true">Yes</option><option value="false">No</option></select></label>
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Available on request</span><select value={String(productState.productInfo.isAvailableOnRequest ?? false)} onChange={(event) => setProductInfo({ isAvailableOnRequest: event.target.value === "true" })} className={inputClass}><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Pay on delivery</span><select value={String(productState.productInfo.payOnDelivery ?? false)} onChange={(event) => setProductInfo({ payOnDelivery: event.target.value === "true" })} className={inputClass}><option value="false">No</option><option value="true">Yes</option></select></label>
+              <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Est. delivery days</span><input type="number" min="0" value={productState.productInfo.estDeliveryDays ?? 0} onChange={(event) => setProductInfo({ estDeliveryDays: Number(event.target.value) || 0 })} className={inputClass} /></label>
             </div>
             <div className="mt-6">
               <label className="space-y-2"><span className="text-sm font-medium text-slate-700">Tags</span><input value={tagQuery} onChange={(event) => setTagQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && tagQuery.trim()) { event.preventDefault(); addTag(tagQuery); } }} list="vendor-product-tags" className={inputClass} placeholder="Search tags or type a custom one" /><datalist id="vendor-product-tags">{filteredTags.map((tag) => <option key={tag.id} value={tag.name} />)}</datalist></label>

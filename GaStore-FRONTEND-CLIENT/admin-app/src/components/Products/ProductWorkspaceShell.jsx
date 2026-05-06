@@ -10,15 +10,12 @@ const ProductWorkspaceShell = ({
     <div className="space-y-6">
       <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_40%,#eff6ff_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="grid gap-8 px-6 py-7 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-orange-500">
-              {eyebrow}
-            </p>
-            <h1 className="mt-3 font-['Trebuchet_MS','Segoe_UI',sans-serif] text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+          <div className="text-start">
+            <h1 className="text-3xl font-black tracking-tight text-gray-950">
               {title}
             </h1>
             {description ? (
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
                 {description}
               </p>
             ) : null}

@@ -82,15 +82,9 @@ export default function DashboardOverviewComponent({
     <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
       <section className="rounded-[30px] border border-[#ece4db] bg-white/90 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
-              Performance Snapshot
-            </p>
+          <div className="text-start">
             <h2 className="mt-2 text-2xl font-semibold text-gray-950">Core business metrics</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              The signals your team needs most, without digging through each admin section.
-            </p>
-          </div>
+           </div>
 
           <div className="inline-flex items-center gap-2 rounded-full bg-[#fff6ef] px-4 py-2 text-sm font-medium text-[#c2410c]">
             <BarChart3 size={16} />
@@ -128,15 +122,9 @@ export default function DashboardOverviewComponent({
       </section>
 
       <section className="rounded-[30px] border border-[#ece4db] bg-white/90 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.06)] md:p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gray-400">
-          Quick Actions
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-gray-950">Move the store forward</h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Jump into the admin tasks that usually matter first during daily operations.
-        </p>
-
-        <div className="mt-6 space-y-3">
+        <h2 className="mt-2 text-start text-2xl font-semibold text-gray-950">Move the store forward</h2>
+        
+        <div className="text-start mt-6 space-y-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (

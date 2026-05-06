@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import requestHandler from "../../utils/requestHandler";
 import endpointsPath from "../../constants/EndpointsPath";
+import PageHeader from "../PageHeader";
 
 const statusStyles = {
   Pending: "bg-blue-50 text-blue-700",
@@ -151,13 +152,11 @@ export default function MarketplaceModeration({ type = "kyc" }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-500">Vendor moderation</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">{title}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Review incoming marketplace submissions before they become eligible to sell or appear in the storefront.
-        </p>
-      </div>
+          <PageHeader
+  title={title}
+  subtitle="Review incoming marketplace submissions before they become eligible to sell or appear in the storefront."
+  rightContent={null}
+/>
 
       <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
         {loading ? (

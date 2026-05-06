@@ -221,6 +221,9 @@ namespace GaStore.Core.Services.Implementations
                         StockQuantity = p.StockQuantity,
                         IsAvailable = p.IsAvailable,
                         IsAvailableOnRequest = p.IsAvailableOnRequest,
+                        PayOnDelivery = p.PayOnDelivery,
+                        EstDeliveryDays = p.EstDeliveryDays,
+                        AvailableOnRequest = p.AvailableOnRequest,
                         IsApproved = p.IsApproved,
                         IsPublished = p.IsPublished,
                         ReviewStatus = p.ReviewStatus,
@@ -398,6 +401,9 @@ namespace GaStore.Core.Services.Implementations
                         StockQuantity = p.StockQuantity,
                         IsAvailable = p.IsAvailable,
                         IsAvailableOnRequest = p.IsAvailableOnRequest,
+                        PayOnDelivery = p.PayOnDelivery,
+                        EstDeliveryDays = p.EstDeliveryDays,
+                        AvailableOnRequest = p.AvailableOnRequest,
                         IsApproved = p.IsApproved,
                         IsPublished = p.IsPublished,
                         ReviewStatus = p.ReviewStatus,
@@ -618,8 +624,11 @@ namespace GaStore.Core.Services.Implementations
 					PrimaryColor = product.PrimaryColor,
 					Condition = product.Condition,
 					StockQuantity = product.StockQuantity,
-					IsAvailable = product.IsAvailable,
+                    IsAvailable = product.IsAvailable,
                     IsAvailableOnRequest = product.IsAvailableOnRequest,
+                    PayOnDelivery = product.PayOnDelivery,
+                    EstDeliveryDays = product.EstDeliveryDays,
+                    AvailableOnRequest = product.AvailableOnRequest,
                     IsApproved = product.IsApproved,
 					IsPublished = product.IsPublished,
 					ReviewStatus = product.ReviewStatus,
@@ -968,6 +977,9 @@ namespace GaStore.Core.Services.Implementations
 							prod.StockQuantity = productDto.StockQuantity;
 							prod.IsAvailable = productDto.IsAvailable;
                             prod.IsAvailableOnRequest = productDto.IsAvailableOnRequest;
+                            prod.PayOnDelivery = productDto.PayOnDelivery;
+                            prod.EstDeliveryDays = productDto.EstDeliveryDays;
+                            prod.AvailableOnRequest = productDto.AvailableOnRequest;
 							prod.IsApproved = productDto.IsApproved;
 							prod.BrandId = productDto.BrandId;
                             prod.CategoryId = productDto.CategoryId;
@@ -1011,6 +1023,9 @@ namespace GaStore.Core.Services.Implementations
 						StockQuantity = productDto.StockQuantity,
 						IsAvailable = productDto.IsAvailable,
                         IsAvailableOnRequest = productDto.IsAvailableOnRequest,
+                        PayOnDelivery = productDto.PayOnDelivery,
+                        EstDeliveryDays = productDto.EstDeliveryDays,
+                        AvailableOnRequest = productDto.AvailableOnRequest,
 						IsApproved = false,
                         IsPublished = false,
                         ReviewStatus = ProductReviewStatus.Draft,
@@ -1096,6 +1111,9 @@ namespace GaStore.Core.Services.Implementations
 					StockQuantity = productDto.StockQuantity,
 					IsAvailable = productDto.IsAvailable,
                     IsAvailableOnRequest = productDto.IsAvailableOnRequest,
+                    PayOnDelivery = productDto.PayOnDelivery,
+                    EstDeliveryDays = productDto.EstDeliveryDays,
+                    AvailableOnRequest = productDto.AvailableOnRequest,
 					IsApproved = productDto.IsApproved,
 					BrandId = resolvedBrandId,
                     CategoryId = productDto.CategoryId,
@@ -1229,6 +1247,9 @@ namespace GaStore.Core.Services.Implementations
                     StockQuantity = product.StockQuantity,
                     IsAvailable = product.IsAvailable,
                     IsAvailableOnRequest = product.IsAvailableOnRequest,
+                    PayOnDelivery = product.PayOnDelivery,
+                    EstDeliveryDays = product.EstDeliveryDays,
+                    AvailableOnRequest = product.AvailableOnRequest,
                     IsApproved = product.IsApproved,
                     IsPublished = product.IsPublished,
                     ReviewStatus = product.ReviewStatus,
@@ -1282,6 +1303,9 @@ namespace GaStore.Core.Services.Implementations
 					StockQuantity = productDto.StockQuantity,
 					IsAvailable = productDto.IsAvailable,
                     IsAvailableOnRequest = productDto.IsAvailableOnRequest,
+                    PayOnDelivery = productDto.PayOnDelivery,
+                    EstDeliveryDays = productDto.EstDeliveryDays,
+                    AvailableOnRequest = productDto.AvailableOnRequest,
 					IsApproved = productDto.IsApproved,
 					BrandId = resolvedBrandId,
                     CategoryId = productDto.CategoryId,
@@ -1439,6 +1463,9 @@ namespace GaStore.Core.Services.Implementations
                     StockQuantity = product.StockQuantity,
                     IsAvailable = product.IsAvailable,
                     IsAvailableOnRequest = product.IsAvailableOnRequest,
+                    PayOnDelivery = product.PayOnDelivery,
+                    EstDeliveryDays = product.EstDeliveryDays,
+                    AvailableOnRequest = product.AvailableOnRequest,
                     IsApproved = product.IsApproved,
                     IsPublished = product.IsPublished,
                     ReviewStatus = product.ReviewStatus,
