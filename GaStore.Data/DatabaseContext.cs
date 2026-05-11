@@ -106,6 +106,7 @@ namespace GaStore.Models.Database
         public DbSet<WebsiteContent> WebsiteContents { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherRedemption> VoucherRedemptions { get; set; }
+        public DbSet<UploadServiceApiKey> UploadServiceApiKeys { get; set; }
 
         // ----------------------------
         // RELATIONSHIPS & CONFIGURATIONS
@@ -333,6 +334,21 @@ namespace GaStore.Models.Database
                 .WithMany()
                 .HasForeignKey(vr => vr.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<UploadServiceApiKey>()
+                .HasIndex(x => x.ApiKey)
+                .IsUnique();
+
+            modelBuilder.Entity<UploadServiceApiKey>()
+                .HasData(new UploadServiceApiKey
+                {
+                    Id = Guid.Parse("4f50b8ad-4f2a-44ad-ae9c-8446f66fe4ef"),
+                    Name = "Default Test Key",
+                    ApiKey = "ga-upload-test-key-2026",
+                    IsActive = true,
+                    DateCreated = new DateTime(2026, 5, 11, 0, 0, 0, DateTimeKind.Utc),
+                    DateUpdated = new DateTime(2026, 5, 11, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             modelBuilder.Entity<PaymentMethodConfiguration>()
                 .HasData(
